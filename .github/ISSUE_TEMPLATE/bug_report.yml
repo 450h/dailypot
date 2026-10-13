@@ -1,0 +1,44 @@
+name: Bug report
+description: Something is wrong (a crash, a wrong number, a UI problem)
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Do not paste your data.json or real financial details.** For security issues use Security → Report a vulnerability instead.
+  - type: input
+    id: version
+    attributes:
+      label: DailyPot version
+      description: Settings → About
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Pot / per-day math, Bills (obligations), Transactions, Savings goals, Investments, Reports, PIN lock, Backups / import / export, Install / startup, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use made-up amounts. For pot math, include per-day, payday and the spends per day.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: For money figures, say which rule in docs/05-data-model.md you expected.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed any real personal or financial data from this report
+          required: true

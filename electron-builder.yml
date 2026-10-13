@@ -1,0 +1,46 @@
+# electron-builder config (docs/04 Distribution, SECURITY §11 fuses). Windows only in v1 (D6).
+appId: io.github.dailypot
+productName: DailyPot
+copyright: Copyright © 2026 450h
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+asar: true
+icon: build/icon.ico
+
+# Hardening fuses (SECURITY §11). Playwright cannot attach to a packaged build once
+# EnableNodeCliInspectArguments is off — E2E runs against the unpackaged out/ build.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
+  grantFileProtocolExtraPrivileges: false
+  enableCookieEncryption: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  # Unsigned in v1 (OPEN-QUESTIONS D2): SmartScreen will warn; checksums are published instead.
+  signAndEditExecutable: true
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: DailyPot
+  artifactName: DailyPot-Setup-${version}.${ext}
+  deleteAppDataOnUninstall: false
+
+portable:
+  artifactName: DailyPot-${version}-portable.${ext}

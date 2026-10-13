@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+build-cache/
+*.tsbuildinfo
+
+# Environment & secrets — NEVER commit real values
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local app data used in development/tests (never commit real financial data)
+.dev-data/
+test-data/
+tests/e2e/screenshots/
+test-results/
+playwright-report/
+/data.json
+/security.json
+logs/
+
+# Testing / logs / OS / editor
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
