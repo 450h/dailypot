@@ -14,3 +14,4 @@ Short, immutable records of **why** a significant choice was made. When a decisi
 | [0004](0004-derived-pot-ledger.md) | The pot is derived from a single timeline, never stored | Accepted |
 | [0005](0005-no-network-no-auto-update.md) | No network access, no auto-update, no telemetry | Accepted |
 | [0006](0006-license-mit.md) | MIT license | Accepted |
+| [0007](0007-anchored-main-balance.md) | Anchored, derived main balance and net worth | Accepted |

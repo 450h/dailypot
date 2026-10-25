@@ -120,12 +120,36 @@ describe('Store (ADR-0002)', () => {
     await fs.writeFile(join(dir, 'data.json'), JSON.stringify(v0))
     const store = new Store(dir, {
       now: at('2026-10-13T10:15:00'),
-      migrations: { 0: (raw) => ({ ...raw, confirmedDays: [] }) }
+      migrations: { 0: (raw) => ({ ...raw, confirmedDays: [] }), 1: (raw) => raw }
     })
     await store.load()
     expect(store.state.confirmedDays).toEqual([])
     expect(await fs.readdir(store.backupsDir)).toContain('pre-migration-20261013T101500.json')
     expect(JSON.parse(await fs.readFile(store.dataFile, 'utf8')).schemaVersion).toBe(SCHEMA_VERSION)
+  })
+
+  it('migrates a v1 file to schemaVersion 2 additively, with a pre-migration backup (docs/05 §9)', async () => {
+    const v1 = { ...setUp(), schemaVersion: 1 }
+    await fs.writeFile(join(dir, 'data.json'), JSON.stringify(v1))
+    const store = new Store(dir, { now: at('2026-10-13T10:15:00') })
+    await store.load()
+    expect(SCHEMA_VERSION).toBe(2)
+    expect(store.state.schemaVersion).toBe(2)
+    expect({ ...store.state, schemaVersion: 1 }).toEqual(v1)
+    expect(store.state.settings.balanceAnchor).toBeUndefined()
+    expect(await fs.readdir(store.backupsDir)).toContain('pre-migration-20261013T101500.json')
+    expect(JSON.parse(await fs.readFile(join(store.backupsDir, 'pre-migration-20261013T101500.json'), 'utf8'))).toEqual(v1)
+    expect(JSON.parse(await fs.readFile(store.dataFile, 'utf8')).schemaVersion).toBe(2)
+  })
+
+  it('persists a balance anchor and reloads it', async () => {
+    const store = new Store(dir)
+    await store.load()
+    const s = setUp()
+    await store.commit({ ...s, settings: { ...s.settings, balanceAnchor: { date: '2026-10-13', amount: 250000 } } })
+    const again = new Store(dir)
+    await again.load()
+    expect(again.state.settings.balanceAnchor).toEqual({ date: '2026-10-13', amount: 250000 })
   })
 
   it('export in read-only mode copies the untouched file; recovery mode refuses (QA N2)', async () => {

@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { cycleEndFor, earlyStartWindow, ensureCycles, nextPaydayAfter, startNextEarly, validateFirstCycleStart } from './cycles'
+import { addDays } from '../dates'
+import {
+  MAX_EXTEND_BACK_DAYS,
+  cycleEndFor,
+  earlyStartWindow,
+  ensureCycles,
+  extendCyclesBack,
+  nextPaydayAfter,
+  paydayOnOrBefore,
+  planExtendBack,
+  startNextEarly,
+  validateExtendBack,
+  validateFirstCycleStart
+} from './cycles'
 import { allInstances, defaultStartMonth, instancesOf } from './obligations'
 import { id, sar } from './testkit'
 import type { Cycle, Obligation } from '../schema'
@@ -121,5 +134,69 @@ describe('obligation instances (docs/05 §4)', () => {
     expect(defaultStartMonth(15, '2026-10-20')).toBe('2026-11')
     expect(defaultStartMonth(25, '2026-10-20')).toBe('2026-10')
     expect(defaultStartMonth(20, '2026-10-20')).toBe('2026-10')
+  })
+})
+
+describe('extend tracking back (docs/05 §3)', () => {
+  const first = (): Cycle => ({ id: id(), startDate: '2026-10-13', endDate: '2026-10-26', dailyAllowance: sar(70) })
+  const span = (c: Cycle): [string, string] => [c.startDate, c.endDate]
+
+  it('paydayOnOrBefore: same month, previous month, payday 31 in February (non-leap and leap), 1 January', () => {
+    expect(paydayOnOrBefore('2026-10-27', 27)).toBe('2026-10-27')
+    expect(paydayOnOrBefore('2026-10-30', 27)).toBe('2026-10-27')
+    expect(paydayOnOrBefore('2026-10-12', 27)).toBe('2026-09-27')
+    expect(paydayOnOrBefore('2027-03-05', 31)).toBe('2027-02-28')
+    expect(paydayOnOrBefore('2027-02-28', 31)).toBe('2027-02-28')
+    expect(paydayOnOrBefore('2028-03-05', 31)).toBe('2028-02-29')
+    expect(paydayOnOrBefore('2027-01-01', 27)).toBe('2026-12-27')
+    expect(paydayOnOrBefore('2027-01-01', 1)).toBe('2027-01-01')
+  })
+
+  it('builds backwards from a mid-month first cycle, leaving a short cycle right before it', () => {
+    const plan = planExtendBack([first()], 27, '2026-09-01', sar(50), id)
+    expect(plan.map(span)).toEqual([
+      ['2026-09-01', '2026-09-26'],
+      ['2026-09-27', '2026-10-12']
+    ])
+    expect(plan.every((c) => c.dailyAllowance === sar(50))).toBe(true)
+  })
+
+  it('newStart exactly on a payday gives one cycle; one day before the first gives a one-day cycle', () => {
+    expect(planExtendBack([first()], 27, '2026-09-27', 0, id).map(span)).toEqual([['2026-09-27', '2026-10-12']])
+    expect(planExtendBack([first()], 27, '2026-10-12', 0, id).map(span)).toEqual([['2026-10-12', '2026-10-12']])
+  })
+
+  it('spans several months, clamping payday 31 like the forward chain does', () => {
+    const c: Cycle = { id: id(), startDate: '2027-03-31', endDate: '2027-04-29', dailyAllowance: 0 }
+    expect(planExtendBack([c], 31, '2026-12-15', 0, id).map(span)).toEqual([
+      ['2026-12-15', '2026-12-30'],
+      ['2026-12-31', '2027-01-30'],
+      ['2027-01-31', '2027-02-27'],
+      ['2027-02-28', '2027-03-30']
+    ])
+  })
+
+  it('extendCyclesBack returns the full contiguous list and leaves existing cycles untouched', () => {
+    const existing: Cycle[] = [first(), { id: id(), startDate: '2026-10-27', endDate: '2026-11-26', dailyAllowance: sar(70) }]
+    const frozen = JSON.parse(JSON.stringify(existing)) as Cycle[]
+    const all = extendCyclesBack(existing, 27, '2026-09-01', sar(50), id)
+    expect(all).toHaveLength(4)
+    expect(all.slice(2)).toEqual(frozen)
+    expect(existing).toEqual(frozen)
+    expect(all[0]!.startDate).toBe('2026-09-01')
+    for (let i = 1; i < all.length; i++) expect(all[i]!.startDate).toBe(addDays(all[i - 1]!.endDate, 1))
+    expect(planExtendBack([], 27, '2026-09-01', 0, id)).toEqual([])
+  })
+
+  it('validateExtendBack: no cycles, not before the first day, in the future, too far back', () => {
+    const today = '2026-10-13'
+    expect(validateExtendBack([], '2026-09-01', today)).toMatch(/no budget cycle/i)
+    expect(validateExtendBack([first()], '2026-10-13', today)).toMatch(/before/)
+    expect(validateExtendBack([first()], '2026-10-14', today)).toMatch(/before/)
+    expect(validateExtendBack([first()], '2026-10-12', today)).toBeNull()
+    expect(validateExtendBack([first()], '2023-10-13', today)).toBeNull()
+    expect(validateExtendBack([first()], '2023-10-12', today)).toMatch(String(MAX_EXTEND_BACK_DAYS))
+    // The clock went backwards past the first cycle: a start after today is refused.
+    expect(validateExtendBack([first()], '2026-10-05', '2026-10-01')).toMatch(/future/)
   })
 })

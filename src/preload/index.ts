@@ -16,6 +16,7 @@ const api: DailyPotApi = {
   completeSetup: (payload) => call(CHANNELS.completeSetup, payload),
   setAllowance: (amount) => call(CHANNELS.setAllowance, amount),
   startNextEarly: (startDate) => call(CHANNELS.startNextEarly, startDate),
+  extendBack: (payload) => call(CHANNELS.extendBack, payload),
   pinStatus: () => call(CHANNELS.pinStatus),
   pinVerify: (pin) => call(CHANNELS.pinVerify, pin),
   pinSet: (current, next) => call(CHANNELS.pinSet, current, next),

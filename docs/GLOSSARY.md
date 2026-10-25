@@ -18,7 +18,10 @@ Domain and technical terms. These are not legal definitions.
 | **Shortfall (from main balance)** | The part of a bill payment the pot couldn't cover. |
 | **Rollover** | A cycle's closing pot becoming the next cycle's opening pot. |
 | **Safe-to-spend** | The per-day spend that still lets the pot cover this cycle's remaining bills. |
-| **Main balance** | Your actual bank/cash money outside the pot. DailyPot doesn't track its balance; it shows cash flow. |
+| **Main balance** | The cash in your main account. Derived, never stored: the balance anchor (if set) plus every cash flow since (income − daily − non-daily − paid bills − goal contributions − net investment buys). Without an anchor it is labelled "change since tracking started" ([05 §10](05-data-model.md)). |
+| **Balance anchor** | One optional record, "at the start of this date my main balance was X", set from "my balance now is X" and used as the starting point of the main balance ([05 §10](05-data-model.md)). |
+| **Net worth** | Main balance + money saved in active goals + the value of active holdings. Archiving a goal or holding closes it, so its money stops counting ([05 §10](05-data-model.md)). |
+| **Extend tracking back** | Prepending budget cycles before the first one so past entries count, with optional "spent nothing" confirmations and skipped bill months for the new range ([05 §3](05-data-model.md)). |
 | **Net invested** | Total bought minus total sold for a holding. |
 | **Valuation** | A manually entered current value of a holding on a date. |
 | **Halala** | 1/100 of a Saudi riyal; the minor unit used for storage. |

@@ -61,6 +61,17 @@ export function settlementMap(payments: readonly ObligationPayment[], today: ISO
   return map
 }
 
+/**
+ * The bill months "Extend tracking back" marks skipped (docs/05 §3): instances due in `[from, to]` and before
+ * `today` that have no settlement row at all. Deliberately not `settlementMap`: a row dated after today (clock
+ * rolled back) still occupies its month, because a month may be settled at most once (integrityError). Main and
+ * the dialog preview both take the list from here; there is no second definition.
+ */
+export function pastBillsToSkip(obligations: readonly Obligation[], payments: readonly ObligationPayment[], from: ISODate, to: ISODate, today: ISODate): Instance[] {
+  const settled = new Set(payments.map((p) => instanceKey(p.obligationId, p.period)))
+  return allInstances(obligations, from, to).filter((i) => i.dueDate < today && !settled.has(i.key))
+}
+
 /** Paid → payment amount; skipped → 0; unsettled → obligation's current amount. */
 export function effectiveAmount(inst: Instance, settlement: ObligationPayment | undefined): number {
   if (!settlement) return inst.plannedAmount

@@ -1,0 +1,82 @@
+/*
+ * Settings (docs/09 §8 "Settings"): one long editorial form. Each section is an eyebrow on a 2px rule
+ * (.section-head from app.css) with a two-column body: a 240px label column with 12px help, controls right.
+ * Page-scoped rules only, tokens only; never redefines an app.css class.
+ */
+.settings .settings-section { display: flex; flex-direction: column; min-width: 0; }
+.settings .settings-section + .settings-section { margin-top: 12px; }
+.settings .section-head .eyebrow { display: block; margin-bottom: 4px; }
+
+.settings .settings-row {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 8px 24px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.settings .settings-row:last-child { border-bottom: 0; }
+.settings .settings-label { display: flex; flex-direction: column; gap: 4px; font: 600 13px/1.4 var(--font-text); color: var(--text); min-width: 0; }
+.settings .settings-help { font: 450 12px/1.45 var(--font-text); color: var(--text-3); }
+.settings .settings-control { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.settings .settings-control .input.narrow { max-width: 240px; }
+.settings .settings-control .table-wrap.scroll { max-height: 320px; overflow-y: auto; }
+.settings .table.backups-table { --col-actions: 96px; --col-actions-1: 96px; }
+.settings .settings-control p { max-width: 68ch; }
+@media (max-width: 1039px) {
+  .settings .settings-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+}
+
+/* Theme: three labelled swatches in a radiogroup. The chips preview the two papers, so they use the
+   documented paper/ink values from docs/09 §2.1–2.2 (a preview of the other theme cannot flip with the
+   current one); the word underneath and the ✓ glyph carry the state, never the colour alone. */
+.settings .theme-radio { display: flex; gap: 12px; flex-wrap: wrap; }
+.settings .theme-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font: 500 12px/1.3 var(--font-text);
+  cursor: pointer;
+}
+.settings .theme-swatch:hover { background: var(--surface-2); color: var(--text); }
+.settings .theme-swatch[aria-checked='true'] { color: var(--text); font-weight: 600; }
+.settings .theme-chip {
+  position: relative;
+  width: 64px;
+  height: 40px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #f6f4ee;
+}
+.settings .theme-chip::before { content: ''; position: absolute; left: 8px; right: 8px; top: 9px; height: 2px; background: #141311; z-index: 1; }
+.settings .theme-chip.dark { background: #121214; }
+.settings .theme-chip.dark::before { background: #f1ede4; }
+.settings .theme-chip.system::after { content: ''; position: absolute; inset: 0 0 0 50%; background: #121214; }
+.settings .theme-chip.system::before { right: 50%; margin-right: 4px; }
+.settings .theme-swatch[aria-checked='true'] .theme-chip { border-color: transparent; box-shadow: 0 0 0 2px var(--focus); }
+.settings .theme-chip .glyph {
+  position: relative;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  font: 700 12px/1 var(--font-text);
+}
+
+/* Colophon (About): 12px, the facts line in mono. */
+.settings .colophon { display: flex; flex-direction: column; gap: 6px; font: 450 12px/1.6 var(--font-text); color: var(--text-2); }
+.settings .colophon .mono { letter-spacing: 0.02em; color: var(--text-3); }

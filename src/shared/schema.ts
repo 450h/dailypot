@@ -7,7 +7,8 @@ import { z } from 'zod'
 import { isValidDate, isValidMonth } from './dates'
 import { CURRENCIES, MAX_AMOUNT } from './money'
 
-export const SCHEMA_VERSION = 1
+/** Bumped on every data-shape change (DEVELOPMENT-FRAMEWORK §3). v2 added the optional settings.balanceAnchor (docs/05 §10). */
+export const SCHEMA_VERSION = 2
 
 export const zId = z.uuid()
 export const zDate = z.string().refine(isValidDate, 'Invalid date')
@@ -18,13 +19,20 @@ const zNote = z.string().max(200).optional()
 const zName = z.string().trim().min(1).max(40)
 const zTimestamp = z.string().min(10).max(40)
 
+/**
+ * "At the START of `date` (before that day's flows) my main cash balance was `amount`."
+ * The main balance is derived from this anchor plus the flows since (docs/05 §10, ADR-0007).
+ */
+export const zBalanceAnchor = z.strictObject({ date: zDate, amount: z.number().int().min(-MAX_AMOUNT).max(MAX_AMOUNT) })
+
 export const zSettings = z.strictObject({
   currency: z.enum(CURRENCIES),
   payday: z.number().int().min(1).max(31),
   theme: z.enum(['system', 'light', 'dark']),
   autoLockMinutes: z.number().int().min(0).max(240),
   setupComplete: z.boolean(),
-  lastExportAt: zTimestamp.optional()
+  lastExportAt: zTimestamp.optional(),
+  balanceAnchor: zBalanceAnchor.optional()
 })
 
 export const zCategory = z.strictObject({
@@ -146,6 +154,7 @@ export const zAppState = z.strictObject({
   confirmedDays: z.array(zConfirmedDay)
 })
 
+export type BalanceAnchor = z.infer<typeof zBalanceAnchor>
 export type Settings = z.infer<typeof zSettings>
 export type Category = z.infer<typeof zCategory>
 export type Cycle = z.infer<typeof zCycle>

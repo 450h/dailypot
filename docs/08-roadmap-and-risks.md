@@ -19,6 +19,14 @@ Every phase leaves the app runnable (`npm run dev`) with tests green.
 | **P5 — Package & release** | `app://` privileged protocol with CSP header; network block; fuses; electron-builder NSIS + portable; icon; GitHub Actions release on tag with checksums; README with screenshots and the SmartScreen note | The installer builds locally. The packaged app launches, and a launch script confirms the window loads and no outbound request happens. Playwright can't attach to a packaged app once the `EnableNodeCliInspectArguments` fuse is off, so the packaged check is a script plus a manual run, and the E2E suite stays on `out/`. README instructions verified | 0.5 / 1 / 2 h |
 | **Total** | | | **3.25 / 6.5 / 11.5 h** of owner time across the build |
 
+### v0.2.0 (2026-10-25) — Broadsheet redesign
+Shipped after v0.1.0, driven by the owner's three complaints (unlogged days vanish, no total balance, can't add past details):
+- **Live main balance and net worth** ([ADR-0007](decisions/0007-anchored-main-balance.md), 05 §10): `settings.balanceAnchor`, `computeBalance`, `balanceSeries`, `anchorForBalanceNow`, `netWorth`; set from the wizard, the dashboard masthead or Settings → Balance. **`schemaVersion` 1 → 2** (identity migration, the field is optional).
+- **`cycle:extendBack`** (05 §3): past cycles before the first tracked day, with optional no-spend confirmation and skipped past bill months; dialog under Pot history and Settings → Budget cycles.
+- **Unlogged-day confirmation everywhere:** the dashboard widget, the Day Strip popover (dashboard and Pot history), inline row buttons and "Confirm all" in Pot history, and the sidebar badge.
+- **Design system** ([09](09-design-system.md)) and renderer atoms ([10](10-renderer-components.md)): warm paper / ink themes, the "goes to print" entrance choreography, duotone charts, reduced-motion support; every page rebuilt on it (06 describes the result).
+- **QA acceptance used:** 126 unit tests green (engine incl. `balance.test.ts`, store, IPC); six e2e tests against the unpackaged `out/` build: the smoke walk (setup → expense → pay bill → relaunch, now also confirming an unlogged day, the dialog focus trap and focus rings), the extend-back → set-balance case, the `layout.spec.ts` guard that asserts no horizontal overflow on any page or dialog at 900×640, 1200×820 and 1440×900, plus the hardening and PIN specs; the showcase screenshot run regenerated every image in `docs/screenshots/` (including the new `settings.png` and `dashboard-unlogged.png`) in light and dark.
+
 ## Testing strategy
 - **Unit tests (Vitest)**
   - Cover `src/shared/**` (engine and utils) and `src/main` store and IPC handlers, using a temp dir and fake Electron APIs where needed.
@@ -29,7 +37,7 @@ Every phase leaves the app runnable (`npm run dev`) with tests green.
     - enforces the referential rules.
 - **E2E smoke test (Playwright `_electron`)**
   - Launches the built, unpackaged app with `DAILYPOT_DATA_DIR` pointing at a temp folder.
-  - Walks setup → expense → bill → reload and takes screenshots.
+  - Walks setup → confirm an unlogged day (widget and Pot history) → expense → bill (dialog focus trap) → reload, checks the strip-cell targets and focus rings, and takes screenshots.
 - **CI gates:** typecheck (strict), lint, unit tests, `npm audit --audit-level=high`, build. Red CI means no merge or release.
 
 ## Pre-mortem: "a year from now DailyPot failed because…"

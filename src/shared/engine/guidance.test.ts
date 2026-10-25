@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { dashboardBills, earmarks, safeToSpend } from './guidance'
+import { dashboardBills, earmarks, safeToSpend, unloggedDays } from './guidance'
 import { computePot } from './pot'
-import { baseState, bill, pay, sar, skip, spend } from './testkit'
+import { baseState, bill, id, pay, sar, skip, spend } from './testkit'
 
 describe('safe-to-spend (docs/05 §5, QA B2)', () => {
   it('accounts for a pot deficit (S4): pot −100, phone 80 due in 9 days → 50/day', () => {
@@ -87,5 +87,18 @@ describe('earmarks and dashboard bills', () => {
       'Gym:2026-12:paid'
     ])
     expect(phone).toBeDefined()
+  })
+})
+
+describe('unlogged days helper (docs/05 §5)', () => {
+  it('returns closed unlogged days newest first, within an optional range', () => {
+    const s = baseState([{ startDate: '2026-11-01', endDate: '2026-11-30', allowance: 70 }])
+    spend(s, '2026-11-02', 10)
+    s.confirmedDays.push({ id: id(), date: '2026-11-04' })
+    const pot = computePot(s, '2026-11-06')
+    expect(unloggedDays(pot).map((d) => d.date)).toEqual(['2026-11-05', '2026-11-03', '2026-11-01'])
+    expect(unloggedDays(pot, '2026-11-02', '2026-11-05').map((d) => d.date)).toEqual(['2026-11-05', '2026-11-03'])
+    expect(unloggedDays(pot, undefined, '2026-11-01').map((d) => d.date)).toEqual(['2026-11-01'])
+    expect(unloggedDays(pot, '2026-11-06').map((d) => d.date)).toEqual([])
   })
 })

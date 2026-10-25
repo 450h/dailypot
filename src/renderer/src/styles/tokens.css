@@ -1,0 +1,185 @@
+/*
+ * Design tokens — "Broadsheet" (docs/09-design-system.md §2). DEVELOPMENT-FRAMEWORK §7.
+ * Three blocks: light (default), dark by system preference (unless the user forces light),
+ * dark forced by the user. `state/app.tsx` sets data-theme on <html> only when the user overrides.
+ * Everything not repeated in the dark blocks (radii, fonts, motion, spacing, aliases) is inherited.
+ */
+
+/* ---------- 2.1 Light (default) ---------- */
+:root {
+  /* page + surfaces */
+  --bg: #f2efe8;
+  --bg-2: radial-gradient(900px 480px at 18% -10%, rgba(30, 63, 240, 0.07), transparent 60%),
+    linear-gradient(180deg, #f6f4ee 0%, #f2efe8 38%, #eeeae1 100%);
+  --surface: #fbfaf7;
+  --surface-2: #e9e5db;
+  --surface-glass: rgba(251, 250, 247, 0.74);
+  --overlay: rgba(20, 19, 17, 0.55);
+  /* lines */
+  --border: #d6d0c2; /* hairlines: decorative only */
+  --border-strong: #827c6f; /* control boundaries: inputs, selects, seg, checkbox (>= 3:1) */
+  --ink: #141311; /* 2px rules, reference lines, ink ramp step 1 */
+  --ink-2: #67635b; /* ink ramp step 2 (fills) */
+  --ink-3: #a39d91; /* ink ramp step 3 (fills) */
+  --rule: 2px solid var(--ink);
+  /* text */
+  --text: #141311;
+  --text-2: #49463f;
+  --text-3: #67635b;
+  /* accent */
+  --accent: #1e3ff0;
+  --accent-2: #e1e6ff;
+  --accent-text: #ffffff;
+  --accent-glow: rgba(30, 63, 240, 0.26);
+  /* status */
+  --pos: #136d43;
+  --pos-2: #d9f1e2;
+  --neg: #b8261a;
+  --neg-2: #fbe2dd;
+  --neg-text: #ffffff;
+  --warn: #7d5200;
+  --warn-2: #faeacb;
+  --info: #0c6472;
+  --info-2: #d6edf2;
+  --focus: #1e3ff0;
+  --focus-halo: var(--bg);
+  /* data series (fixed order, never cycled; adjacency rules in docs/09 §2.4) */
+  --series-1: #1e3ff0; /* ultramarine: cool / kept / under */
+  --series-2: #c2410c; /* burnt orange: warm / spent / over */
+  --series-3: #078fa2; /* teal */
+  --series-4: #b87309; /* gold */
+  --series-5: #6a4fd6; /* violet */
+  --series-6: #b5375a; /* raspberry */
+  --grid: #dcd7cb;
+  /* depth */
+  --shadow-1: 0 1px 0 rgba(20, 19, 17, 0.05), 0 1px 3px rgba(20, 19, 17, 0.07);
+  --shadow-2: 0 18px 40px -20px rgba(20, 19, 17, 0.28), 0 2px 6px rgba(20, 19, 17, 0.06);
+  --noise-opacity: 0.035;
+  --noise-blend: multiply;
+  /* shape */
+  --radius-lg: 6px;
+  --radius: 4px;
+  --radius-sm: 2px;
+  /* type */
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-text: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-small: 'Segoe UI Variable Small', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  /* motion */
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 360ms;
+  --dur-4: 900ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* spacing (unchanged) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  /* legacy aliases (existing selectors keep working during the migration) */
+  --danger: var(--neg);
+  --danger-2: var(--neg-2);
+  --shadow: var(--shadow-1);
+  --font: var(--font-text);
+  color-scheme: light;
+}
+
+/* ---------- 2.2 Dark by system preference (unless the user forced light) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0f0f11;
+    --bg-2: radial-gradient(900px 480px at 18% -10%, rgba(123, 140, 255, 0.1), transparent 60%),
+      linear-gradient(180deg, #121214 0%, #0f0f11 40%, #0c0c0e 100%);
+    --surface: #17171a;
+    --surface-2: #202024;
+    --surface-glass: rgba(23, 23, 26, 0.72);
+    --overlay: rgba(0, 0, 0, 0.65);
+    --border: #2a2a30;
+    --border-strong: #757067;
+    --ink: #f1ede4;
+    --ink-2: #a9a497;
+    --ink-3: #6f6a60;
+    --rule: 2px solid var(--ink);
+    --text: #f1ede4;
+    --text-2: #bcb7ab;
+    --text-3: #938e84;
+    --accent: #7b8cff;
+    --accent-2: #1b2250;
+    --accent-text: #0b0e22;
+    --accent-glow: rgba(123, 140, 255, 0.32);
+    --pos: #4fcf8a;
+    --pos-2: #10301f;
+    --neg: #ff7a6b;
+    --neg-2: #3a1612;
+    --neg-text: #0f0f11;
+    --warn: #f2b544;
+    --warn-2: #342a12;
+    --info: #5ccbe0;
+    --info-2: #0f2a30;
+    --focus: #9fabff;
+    --focus-halo: var(--bg);
+    --series-1: #5a6dff;
+    --series-2: #d96b2a;
+    --series-3: #1fa3b3;
+    --series-4: #b3860f;
+    --series-5: #8b78e8;
+    --series-6: #d14d78;
+    --grid: #26262b;
+    --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --shadow-2: 0 20px 48px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    --noise-opacity: 0.05;
+    --noise-blend: screen;
+    color-scheme: dark;
+  }
+}
+
+/* ---------- 2.2 Dark forced by the user (Settings → Theme → Dark) ---------- */
+:root[data-theme='dark'] {
+  --bg: #0f0f11;
+  --bg-2: radial-gradient(900px 480px at 18% -10%, rgba(123, 140, 255, 0.1), transparent 60%),
+    linear-gradient(180deg, #121214 0%, #0f0f11 40%, #0c0c0e 100%);
+  --surface: #17171a;
+  --surface-2: #202024;
+  --surface-glass: rgba(23, 23, 26, 0.72);
+  --overlay: rgba(0, 0, 0, 0.65);
+  --border: #2a2a30;
+  --border-strong: #757067;
+  --ink: #f1ede4;
+  --ink-2: #a9a497;
+  --ink-3: #6f6a60;
+  --rule: 2px solid var(--ink);
+  --text: #f1ede4;
+  --text-2: #bcb7ab;
+  --text-3: #938e84;
+  --accent: #7b8cff;
+  --accent-2: #1b2250;
+  --accent-text: #0b0e22;
+  --accent-glow: rgba(123, 140, 255, 0.32);
+  --pos: #4fcf8a;
+  --pos-2: #10301f;
+  --neg: #ff7a6b;
+  --neg-2: #3a1612;
+  --neg-text: #0f0f11;
+  --warn: #f2b544;
+  --warn-2: #342a12;
+  --info: #5ccbe0;
+  --info-2: #0f2a30;
+  --focus: #9fabff;
+  --focus-halo: var(--bg);
+  --series-1: #5a6dff;
+  --series-2: #d96b2a;
+  --series-3: #1fa3b3;
+  --series-4: #b3860f;
+  --series-5: #8b78e8;
+  --series-6: #d14d78;
+  --grid: #26262b;
+  --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-2: 0 20px 48px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --noise-opacity: 0.05;
+  --noise-blend: screen;
+  color-scheme: dark;
+}

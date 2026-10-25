@@ -1,7 +1,7 @@
 {
   "name": "dailypot",
   "productName": "DailyPot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Offline personal finance: a per-day allowance whose leftovers pay your monthly bills.",
   "main": "./out/main/index.js",
   "author": "450h",
@@ -35,7 +35,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.2.0",
-    "electron": "44.7.0",
+    "electron": "44.9.3",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
     "eslint": "10.12.0",

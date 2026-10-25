@@ -38,6 +38,26 @@ describe('cycle summary (docs/05 §6)', () => {
     expect(sum.cashFlow).toBe(sar(10000 - (20 + 300 + 80 + 500 + 1000)))
   })
 
+  it('a goal withdrawal or a holding sale is a net inflow: goalNet / investmentNet go negative and cash flow exceeds income', () => {
+    const s = baseState([{ startDate: '2026-11-01', endDate: '2026-11-30', allowance: 70 }])
+    spend(s, '2026-11-01', 200)
+    spend(s, '2026-11-01', 1000, 'income')
+    const goal: Goal = { id: id(), name: 'Car', targetAmount: sar(1000), archived: false, createdAt: 'x'.repeat(10) }
+    s.goals.push(goal)
+    s.goalContributions.push({ id: id(), goalId: goal.id, date: '2026-11-02', amount: -sar(500) })
+    const h: Holding = { id: id(), name: 'ACME', archived: false }
+    s.holdings.push(h)
+    s.holdingTransactions.push({ id: id(), holdingId: h.id, date: '2026-11-02', kind: 'buy', amount: sar(100) })
+    s.holdingTransactions.push({ id: id(), holdingId: h.id, date: '2026-11-02', kind: 'sell', amount: sar(400) })
+
+    const today = '2026-11-03'
+    const sum = cycleSummary(s, computePot(s, today), s.cycles[0]!, today)
+    expect(sum.goalNet).toBe(-sar(500))
+    expect(sum.investmentNet).toBe(-sar(300))
+    expect(sum.cashFlow).toBe(sar(1000 - (200 + 0 + 0 - 500 - 300)))
+    expect(sum.cashFlow).toBeGreaterThan(sum.income)
+  })
+
   it('groups spending by category, excluding income', () => {
     const s = baseState([{ startDate: '2026-11-01', endDate: '2026-11-30', allowance: 70 }])
     spend(s, '2026-11-01', 20)
@@ -89,6 +109,16 @@ describe('investments (docs/05 §7)', () => {
     expect(holdingFigures(s, h)).toMatchObject({ value: sar(1100), basis: 'valuation', gain: sar(100) })
     s.holdingTransactions.push({ id: id(), holdingId: h.id, date: '2026-10-06', kind: 'buy', amount: sar(1000) })
     expect(holdingFigures(s, h)).toMatchObject({ value: sar(2100), basis: 'estimated', gain: sar(100) })
+  })
+
+  it('with `today`, transactions and valuations dated after it are ignored (docs/05 §5 rule 8)', () => {
+    const { s, h } = setup()
+    s.holdingTransactions.push({ id: id(), holdingId: h.id, date: '2026-10-01', kind: 'buy', amount: sar(1000) })
+    s.holdingTransactions.push({ id: id(), holdingId: h.id, date: '2026-10-15', kind: 'buy', amount: sar(500) })
+    s.holdingValuations.push({ id: id(), holdingId: h.id, date: '2026-10-20', value: sar(5000) })
+    expect(holdingFigures(s, h, '2026-10-10')).toMatchObject({ netInvested: sar(1000), value: sar(1000), basis: 'noValuation', valuationDate: null })
+    expect(holdingFigures(s, h, '2026-10-20')).toMatchObject({ netInvested: sar(1500), value: sar(5000), basis: 'valuation' })
+    expect(holdingFigures(s, h)).toEqual(holdingFigures(s, h, '2026-10-20'))
   })
 
   it('fully sold holdings are closed with realised gain', () => {

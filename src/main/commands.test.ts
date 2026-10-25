@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
+import { computePot } from '@shared/engine'
+import { MAX_AMOUNT } from '@shared/money'
 import { emptyState, type AppState } from '@shared/schema'
-import { CommandError, completeSetup, deleteEntity, integrityError, rollCycles, setAllowance, upsertEntity, updateSettings, type Ctx } from './commands'
+import { CommandError, completeSetup, deleteEntity, extendBack, integrityError, rollCycles, setAllowance, upsertEntity, updateSettings, type Ctx } from './commands'
 
 const ctx = (today = '2026-10-13'): Ctx => ({ today, nowIso: `${today}T10:00:00.000Z`, newId: randomUUID })
 
@@ -154,9 +156,29 @@ describe('entity delete rules', () => {
 describe('settings and cycles', () => {
   it('validates the settings patch strictly', () => {
     const s = setUp()
-    expect(updateSettings(s, { payday: 1 }).settings.payday).toBe(1)
-    expect(code(() => updateSettings(s, { setupComplete: false }))).toBe('INVALID')
-    expect(code(() => updateSettings(s, { currency: 'KWD' }))).toBe('INVALID')
+    expect(updateSettings(s, { payday: 1 }, ctx()).settings.payday).toBe(1)
+    expect(code(() => updateSettings(s, { setupComplete: false }, ctx()))).toBe('INVALID')
+    expect(code(() => updateSettings(s, { currency: 'KWD' }, ctx()))).toBe('INVALID')
+  })
+
+  it('balance anchor: valid, future date rejected, null clears, unknown nested key rejected (docs/05 §10)', () => {
+    const s = setUp()
+    const anchored = updateSettings(s, { balanceAnchor: { date: '2026-10-13', amount: -150000 } }, ctx())
+    expect(anchored.settings.balanceAnchor).toEqual({ date: '2026-10-13', amount: -150000 })
+    expect(updateSettings(anchored, { payday: 5 }, ctx()).settings.balanceAnchor).toEqual({ date: '2026-10-13', amount: -150000 })
+    expect(code(() => updateSettings(s, { balanceAnchor: { date: '2026-10-14', amount: 100 } }, ctx()))).toBe('FUTURE_DATE')
+    expect(code(() => updateSettings(s, { balanceAnchor: { date: '2026-10-13', amount: 10.5 } }, ctx()))).toBe('INVALID')
+    expect(code(() => updateSettings(s, { balanceAnchor: { date: '2026-10-13', amount: 100, evil: 1 } }, ctx()))).toBe('INVALID')
+    expect(code(() => updateSettings(s, { balanceAnchor: { date: '2026-10-13' } }, ctx()))).toBe('INVALID')
+    // The anchor is bounded like every stored amount; the UI surfaces this error rather than clamping.
+    expect(code(() => updateSettings(s, { balanceAnchor: { date: '2026-10-13', amount: MAX_AMOUNT + 1 } }, ctx()))).toBe('INVALID')
+    expect(code(() => updateSettings(s, { balanceAnchor: { date: '2026-10-13', amount: -MAX_AMOUNT - 1 } }, ctx()))).toBe('INVALID')
+    expect(updateSettings(s, { balanceAnchor: { date: '2026-10-13', amount: -MAX_AMOUNT } }, ctx()).settings.balanceAnchor?.amount).toBe(-MAX_AMOUNT)
+    const cleared = updateSettings(anchored, { balanceAnchor: null }, ctx())
+    expect(cleared.settings.balanceAnchor).toBeUndefined()
+    expect('balanceAnchor' in cleared.settings).toBe(false)
+    expect('state' in integrityError(anchored)).toBe(true)
+    expect('state' in integrityError(cleared)).toBe(true)
   })
 
   it('changes the allowance of the current cycle only (QA B5)', () => {
@@ -191,5 +213,107 @@ describe('whole-file integrity (imports)', () => {
     const s = setUp()
     s.transactions.push({ id: randomUUID(), date: '2099-01-01', amount: 100, kind: 'daily', categoryId: expenseCat(s), createdAt: '2026-10-13T00:00:00Z' })
     expect('state' in integrityError(s)).toBe(true)
+  })
+})
+
+describe('extend tracking back (docs/05 §3)', () => {
+  const payload = { startDate: '2026-09-01', dailyAllowance: 5000, confirmDays: true }
+
+  it('prepends contiguous cycles, keeps existing cycles identical and confirms only empty past days', () => {
+    let s = setUp('2026-10-13')
+    s = upsertEntity(s, 'transactions', { id: randomUUID(), date: '2026-09-10', amount: 1000, kind: 'daily', categoryId: expenseCat(s) }, ctx())
+    s = upsertEntity(s, 'transactions', { id: randomUUID(), date: '2026-09-12', amount: 1000, kind: 'nonDaily', categoryId: expenseCat(s) }, ctx())
+    s = upsertEntity(s, 'confirmedDays', { id: randomUUID(), date: '2026-09-11' }, ctx())
+    const next = extendBack(s, payload, ctx('2026-10-13'))
+    expect(next.cycles.map((c) => [c.startDate, c.endDate, c.dailyAllowance])).toEqual([
+      ['2026-09-01', '2026-09-26', 5000],
+      ['2026-09-27', '2026-10-12', 5000],
+      ['2026-10-13', '2026-10-26', 7000]
+    ])
+    expect(next.cycles[2]).toEqual(s.cycles[0])
+    expect('state' in integrityError(next)).toBe(true)
+    // 42 days (1 Sep–12 Oct) minus the day with a daily entry and the already-confirmed day, plus that existing one.
+    const dates = next.confirmedDays.map((c) => c.date).sort()
+    expect(dates).toHaveLength(41)
+    expect(dates[0]).toBe('2026-09-01')
+    expect(dates.at(-1)).toBe('2026-10-12')
+    expect(dates).not.toContain('2026-09-10')
+    expect(dates.filter((d) => d === '2026-09-11')).toHaveLength(1)
+    expect(dates).toContain('2026-09-12')
+    expect(new Set(next.confirmedDays.map((c) => c.id)).size).toBe(41)
+    expect(next.transactions).toEqual(s.transactions)
+  })
+
+  it('without confirmDays no confirmed days are created', () => {
+    const next = extendBack(setUp('2026-10-13'), { ...payload, confirmDays: false }, ctx('2026-10-13'))
+    expect(next.cycles).toHaveLength(3)
+    expect(next.confirmedDays).toEqual([])
+  })
+
+  it('a start after today (clock rolled back) is FUTURE_DATE, like every other date rule (docs/05 §2)', () => {
+    const s = setUp('2026-10-13')
+    expect(code(() => extendBack(s, { ...payload, startDate: '2026-10-05' }, ctx('2026-10-01')))).toBe('FUTURE_DATE')
+    const next = extendBack(s, { ...payload, startDate: '2026-10-01', confirmDays: false }, ctx('2026-10-01'))
+    expect(next.cycles.map((c) => c.startDate)).toEqual(['2026-10-01', '2026-10-13'])
+  })
+
+  it('confirmDays with the clock rolled back confirms only days before today (docs/05 §3: d < min(first.startDate, today))', () => {
+    const s = setUp('2026-10-13')
+    const next = extendBack(s, { ...payload, startDate: '2026-09-20' }, ctx('2026-10-01'))
+    const dates = next.confirmedDays.map((c) => c.date).sort()
+    expect(dates).toHaveLength(11)
+    expect(dates[0]).toBe('2026-09-20')
+    expect(dates.at(-1)).toBe('2026-09-30')
+    expect(dates).not.toContain('2026-10-01')
+    expect('state' in integrityError(next)).toBe(true)
+  })
+
+  it('skipPastBills marks unsettled bill months due in the extended range before today as skipped (docs/05 §3)', () => {
+    const s = setUp('2026-10-13') // Phone, due on the 25th
+    const phone = s.obligations[0]!
+    s.obligations = [{ ...phone, startMonth: '2026-06' }]
+    s.obligationPayments.push({
+      id: randomUUID(), obligationId: phone.id, period: '2026-08', status: 'paid', date: '2026-08-25', amount: 8000, createdAt: '2026-08-25T00:00:00.000Z'
+    })
+    const next = extendBack(s, { ...payload, startDate: '2026-07-01', skipPastBills: true }, ctx('2026-10-13'))
+    // Due in [1 Jul, 12 Oct]: July, August and September. August is already settled; October is due after the range.
+    const skips = next.obligationPayments.filter((x) => x.status === 'skipped')
+    expect(skips.map((x) => x.period)).toEqual(['2026-07', '2026-09'])
+    expect(skips[0]).toMatchObject({ obligationId: phone.id, amount: 0, date: '2026-10-13', createdAt: '2026-10-13T10:00:00.000Z' })
+    expect(next.obligationPayments).toHaveLength(3)
+    expect('state' in integrityError(next)).toBe(true)
+    const pot = computePot(next, '2026-10-13')
+    expect(pot.settlements.get(`${phone.id}:2026-09`)?.status).toBe('skipped')
+    expect(pot.instances.filter((i) => !pot.settlements.has(i.key)).map((i) => i.period)).toEqual(['2026-10'])
+    // Omitted or false: nothing is settled, so the exposed months show as overdue and are reserved.
+    expect(extendBack(s, { ...payload, startDate: '2026-07-01' }, ctx('2026-10-13')).obligationPayments).toEqual(s.obligationPayments)
+    expect(extendBack(s, { ...payload, startDate: '2026-07-01', skipPastBills: false }, ctx('2026-10-13')).obligationPayments).toEqual(s.obligationPayments)
+    // Clock rolled back: a month due inside the range but not before today is left alone.
+    const early = setUp('2026-10-13')
+    early.obligations = [{ ...early.obligations[0]!, dueDay: 5, startMonth: '2026-06' }]
+    const skipped = extendBack(early, { ...payload, startDate: '2026-09-01', skipPastBills: true }, ctx('2026-10-01')).obligationPayments
+    expect(skipped.map((x) => x.period)).toEqual(['2026-09'])
+    // A settlement row dated after today (clock rolled back, or an imported file) still occupies its month:
+    // re-skipping it would settle the month twice, which the integrity check forbids.
+    const future = setUp('2026-10-13')
+    future.obligations = [{ ...future.obligations[0]!, startMonth: '2026-06' }]
+    future.obligationPayments.push({
+      id: randomUUID(), obligationId: future.obligations[0]!.id, period: '2026-08', status: 'paid', date: '2026-11-01', amount: 8000, createdAt: '2026-11-01T00:00:00.000Z'
+    })
+    const withFuture = extendBack(future, { ...payload, startDate: '2026-07-01', skipPastBills: true }, ctx('2026-10-13'))
+    expect(withFuture.obligationPayments.filter((x) => x.status === 'skipped').map((x) => x.period)).toEqual(['2026-07', '2026-09'])
+    expect('state' in integrityError(withFuture)).toBe(true)
+  })
+
+  it('rejects unknown keys, bad values, a start not before the first day, too far back, and before setup', () => {
+    const s = setUp('2026-10-13')
+    expect(code(() => extendBack(s, { ...payload, evil: 1 }, ctx()))).toBe('INVALID')
+    expect(code(() => extendBack(s, { ...payload, dailyAllowance: -1 }, ctx()))).toBe('INVALID')
+    expect(code(() => extendBack(s, { startDate: '2026-09-01', dailyAllowance: 5000 }, ctx()))).toBe('INVALID')
+    expect(code(() => extendBack(s, { ...payload, startDate: '2026-10-13' }, ctx()))).toBe('INVALID')
+    expect(code(() => extendBack(s, { ...payload, startDate: '2026-10-20' }, ctx()))).toBe('FUTURE_DATE') // after today, so the date rule wins
+    expect(code(() => extendBack(s, { ...payload, startDate: '2023-10-12' }, ctx()))).toBe('INVALID')
+    expect(extendBack(s, { ...payload, startDate: '2023-10-13', confirmDays: false }, ctx()).cycles[0]!.startDate).toBe('2023-10-13')
+    expect(code(() => extendBack(emptyState(randomUUID), payload, ctx()))).toBe('NOT_SET_UP')
   })
 })

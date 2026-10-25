@@ -1,0 +1,20 @@
+/*
+ * Reports (docs/09 §8 "Reports", §7.4). Page-scoped rules only, tokens only; never redefines an app.css class.
+ * Layout: KPI tiles on the page's first 2px rule, then the summary / chart cards, which rise in with a stagger.
+ */
+.reports .reports-kpis .tile { gap: 6px; padding-top: 16px; padding-bottom: 14px; }
+.reports .reports-kpis .stat-value { line-height: 1.05; }
+.reports .kpi-sub { display: flex; align-items: center; gap: 6px; min-height: 18px; font-size: 12px; color: var(--text-3); }
+
+/* Two charts side by side; one column in the compact range so neither drops under ~360px. */
+.reports .reports-pair { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1099px) {
+  .reports .reports-pair { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Cycle summary: indented sub-rows in --text-2, deltas with their ▲/▼ glyph. */
+.reports .reports-summary td.sub { padding-left: 26px; color: var(--text-2); font-size: 12px; }
+.reports .reports-summary td.sub .glyph { margin-right: 6px; color: var(--text-3); }
+.reports .reports-summary .delta { font-size: 12px; }
+.reports .reports-note { display: flex; align-items: center; gap: 6px; }
+.reports .reports-note .glyph { font-weight: 700; color: var(--warn); }

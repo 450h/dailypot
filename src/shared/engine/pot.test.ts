@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { extendCyclesBack } from './cycles'
 import { computePot } from './pot'
-import { baseState, bill, pay, sar, skip, spend } from './testkit'
+import { baseState, bill, id, pay, sar, skip, spend } from './testkit'
 
 const day = (pot: ReturnType<typeof computePot>, date: string) => pot.days.find((d) => d.date === date)!
 
@@ -188,5 +189,20 @@ describe('pot — rollover, scope and clock safety', () => {
   it('is empty before the first cycle starts', () => {
     const s = baseState([{ startDate: '2026-11-01', endDate: '2026-11-30', allowance: 70 }])
     expect(computePot(s, '2026-10-31').days).toHaveLength(0)
+  })
+})
+
+describe('pot — extend tracking back (docs/05 §3)', () => {
+  it('the timeline starts on the new first day and the old first cycle opens with the new closing pot', () => {
+    const s = baseState([{ startDate: '2026-10-13', endDate: '2026-10-26', allowance: 70 }])
+    const oldFirst = s.cycles[0]!
+    spend(s, '2026-10-01', 30) // dated before the old first cycle: now inside the timeline
+    s.cycles = extendCyclesBack(s.cycles, 27, '2026-09-27', sar(50), id)
+    const pot = computePot(s, '2026-10-20')
+    const added = s.cycles[0]!
+    expect(pot.firstDate).toBe('2026-09-27')
+    expect(pot.days[0]!.date).toBe('2026-09-27')
+    expect(pot.cycleClosing.get(added.id)).toBe(sar(16 * 50 - 30))
+    expect(pot.cycleOpening.get(oldFirst.id)).toBe(pot.cycleClosing.get(added.id))
   })
 })

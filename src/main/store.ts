@@ -44,8 +44,15 @@ export function timestamp(d: Date): string {
 }
 
 export type Migration = (raw: Record<string, unknown>) => Record<string, unknown>
-/** Forward-only migrations: MIGRATIONS[n] upgrades schemaVersion n → n+1. */
-const MIGRATIONS: Record<number, Migration> = {}
+/**
+ * Forward-only migrations: MIGRATIONS[n] upgrades schemaVersion n → n+1. Never edit a shipped step.
+ * 1 → 2 (v0.2.0): the only change is the new optional `settings.balanceAnchor` (docs/05 §10). Every
+ * valid v1 file is already a valid v2 file, so the step is the identity; `migrate()` stamps the new
+ * schemaVersion and `load()` still writes the pre-migration backup before re-saving.
+ */
+const MIGRATIONS: Record<number, Migration> = {
+  1: (raw) => raw
+}
 
 export function migrate(raw: unknown, migrations: Record<number, Migration> = MIGRATIONS): { value: unknown; migrated: boolean; tooNew: boolean } {
   if (typeof raw !== 'object' || raw === null) return { value: raw, migrated: false, tooNew: false }

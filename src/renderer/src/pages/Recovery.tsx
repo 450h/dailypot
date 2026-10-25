@@ -1,4 +1,7 @@
-/** Shown when data.json is corrupt and no snapshot is valid (docs/05 §9). Never a silent fresh start. */
+/**
+ * Shown when data.json is corrupt and no snapshot is valid (docs/05 §9). Never a silent fresh start.
+ * Layout per docs/09 §8 "Recovery": the center-screen panel with a rule header and display headline.
+ */
 import { useState } from 'react'
 import { Confirm } from '../components/ui'
 import { useApp } from '../state/app'
@@ -9,10 +12,16 @@ export function Recovery(): React.JSX.Element {
   return (
     <div className="center-screen">
       <div className="panel card">
-        <h1>Your data file couldn’t be read</h1>
+        <div className="poster-head">
+          <div className="brand" style={{ padding: 0 }}>
+            <span className="brand-mark" aria-hidden="true" />
+            <span className="brand-text">DailyPot</span>
+          </div>
+          <p className="dateline">Recovery · nothing has been changed</p>
+          <h1>Your data file couldn’t be read</h1>
+        </div>
         <p className="muted">
-          DailyPot found a damaged data file and no valid automatic backup. The damaged file was kept as <code>data.corrupt-…json</code> in{' '}
-          <code>{payload?.meta.dataPath}</code>.
+          DailyPot found a damaged data file and no valid automatic backup. The damaged file was kept as <code>data.corrupt-…json</code> in <code>{payload?.meta.dataPath}</code>.
         </p>
         <div className="row">
           <button className="btn primary" onClick={() => void run(window.dailypot.dataImport(), 'Data imported')}>

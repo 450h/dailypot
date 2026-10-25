@@ -3,7 +3,7 @@ import { diffDays, type ISODate } from '../dates'
 import { ceilDiv } from '../money'
 import type { Cycle, ObligationPayment } from '../schema'
 import { instanceStatus, type Instance, type InstanceStatus } from './obligations'
-import type { PaymentSplit, PotResult } from './pot'
+import type { DayRow, PaymentSplit, PotResult } from './pot'
 
 /** Unsettled instances due on or before the current cycle's end, in instance order. */
 export function openInstances(pot: PotResult, current: Cycle): Instance[] {
@@ -92,4 +92,11 @@ export function dashboardBills(pot: PotResult, current: Cycle, today: ISODate): 
     })
   }
   return rows
+}
+
+/** Closed days with no daily spending and no "spent nothing" confirmation, NEWEST first, optionally within [from, to]. */
+export function unloggedDays(pot: PotResult, from?: ISODate, to?: ISODate): DayRow[] {
+  return pot.days
+    .filter((d) => d.closed && d.unlogged && (from === undefined || d.date >= from) && (to === undefined || d.date <= to))
+    .reverse()
 }

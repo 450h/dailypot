@@ -7,6 +7,7 @@ export const CHANNELS = {
   completeSetup: 'setup:complete',
   setAllowance: 'cycle:setAllowance',
   startNextEarly: 'cycle:startNextEarly',
+  extendBack: 'cycle:extendBack',
   pinStatus: 'pin:status',
   pinVerify: 'pin:verify',
   pinSet: 'pin:set',

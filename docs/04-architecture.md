@@ -38,6 +38,6 @@ No external vendor holds any data or money, so there is no `THIRD-PARTY-REGISTER
 | Door | Why it's hard to reverse | Reversal cost | ADR |
 |---|---|---|---|
 | Electron + React stack | Rewriting the UI layer | Weeks | [0001](decisions/0001-stack-electron-react.md) |
-| On-disk data format (`data.json` v1) | Real user data exists in this shape | Low, because schemaVersion + migrations make it a two-way door if kept up | [0002](decisions/0002-local-json-storage-and-backups.md) |
+| On-disk data format (`data.json`, schemaVersion 2) | Real user data exists in this shape | Low, because schemaVersion + migrations make it a two-way door if kept up | [0002](decisions/0002-local-json-storage-and-backups.md) |
 | Integer minor units for money | Every stored amount | High if changed later | [0003](decisions/0003-money-as-integer-minor-units.md) |
 | MIT license | Published code stays MIT forever | Can't be un-licensed | [0006](decisions/0006-license-mit.md) |

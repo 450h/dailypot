@@ -1,0 +1,61 @@
+/*
+ * Pot history + Transactions (docs/09 §8, docs/10 §7). Page-scoped under `.hx-*`; tokens only; nothing from
+ * app.css is redefined. Motion is transform/opacity/background on small elements and obeys reduced motion.
+ */
+
+/* ---- Pot history: strip band, bill sub-lines, row jump ------------------------------------------ */
+.hx-strip { margin-top: -4px; }
+.hx-strip-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.hx-strip-head .faint { margin-left: 8px; }
+
+/* Bill payments: wrapping mono sub-lines (name + amount, then the pot / main split) that never widen the column. */
+.hx-pay-line { font: 450 12px/1.6 var(--mono); color: var(--text-2); overflow-wrap: anywhere; font-variant-numeric: tabular-nums lining-nums; }
+.hx-pay-line .num { color: var(--text); }
+.hx-pay-line .hx-main { color: var(--warn); font-weight: 600; white-space: nowrap; }
+.hx-pay-line .hx-main .glyph { margin-right: 2px; }
+
+/* The date cell holds the mono date + weekday, the status chip, the folded per-day / delta lines and, for an
+   unlogged day, the confirm button, stacked so the row fits the 160px column at every width. */
+.hx-table .hx-day { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.hx-table .hx-when { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.hx-table .hx-chips { display: inline-flex; min-width: 0; }
+.hx-table .hx-confirm { display: inline-flex; padding-top: 2px; }
+.hx-table td.hx-after { font-weight: 600; }
+.hx-table tr[tabindex]:focus-visible { outline-offset: -2px; box-shadow: none; }
+
+tr.hx-hit td { animation: hx-hit 1600ms var(--ease-out) 1; }
+@keyframes hx-hit {
+  0%, 35% { background: var(--accent-2); }
+  100% { background: transparent; }
+}
+
+/* ---- Transactions: filter bar, ledger rows ------------------------------------------------------ */
+.hx-filters { padding-top: 14px; }
+.hx-filters .grid-4 { align-items: end; }
+
+.hx-row { gap: 12px; }
+.hx-row.row-anim { animation-duration: var(--dur-2); }
+.hx-row .hx-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hx-row .hx-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hx-row .hx-title > span { min-width: 0; overflow-wrap: anywhere; }
+.hx-row .hx-meta { color: var(--text-2); font-size: 12px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hx-row .hx-amount { white-space: nowrap; }
+.hx-row .hx-actions { display: inline-flex; gap: 2px; opacity: 0; transition: opacity var(--dur-1); }
+.hx-row:hover .hx-actions,
+.hx-row:focus-within .hx-actions { opacity: 1; }
+.hx-row.collapse-out { pointer-events: none; }
+
+/* ---- Extend-back dialog ------------------------------------------------------------------------- */
+.hx-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; min-width: 0; }
+.hx-check input[type='checkbox'] { margin-top: 2px; flex: none; }
+.hx-check > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hx-preview { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: var(--rule); }
+.hx-plan { list-style: none; margin: 0; padding: 0; max-height: 168px; overflow-y: auto; font: 450 12px/1.7 var(--mono); font-variant-numeric: tabular-nums lining-nums; }
+.hx-plan li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); }
+.hx-plan li:last-child { border-bottom: 0; }
+.hx-plan li.hx-existing { color: var(--text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  tr.hx-hit td { animation: none; background: var(--accent-2); }
+  .hx-row .hx-actions { opacity: 1; }
+}

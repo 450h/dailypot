@@ -19,6 +19,8 @@ The docs are written first. Then a **QA agent** reviews them and its findings ar
 4. [Features](06-features.md): screens, acceptance criteria, IPC contract
 5. [Threat model](07-threat-model.md)
 6. [Roadmap & risks](08-roadmap-and-risks.md): phases, QA criteria, testing, pre-mortem
+7. [Design system "Broadsheet"](09-design-system.md): tokens, typography, surfaces, dashboard composition, motion, per-page guidance (v0.2.0)
+8. [Renderer components](10-renderer-components.md): the hooks, atoms and visuals the UI is built from, and the e2e-sensitive names
 
 Chapters 02 (monetization) and 03 (compliance) are intentionally absent: the app isn't commercial, has no regulated activity, and doesn't move money or hold third-party personal data.
 

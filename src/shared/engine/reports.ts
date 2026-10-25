@@ -143,12 +143,18 @@ export interface HoldingFigures {
   gainPct: number | null
 }
 
-export function holdingFigures(state: AppState, holding: Holding): HoldingFigures {
-  const txs = state.holdingTransactions.filter((t) => t.holdingId === holding.id)
+/**
+ * One holding's figures (docs/05 §7). With `today` given, transactions and valuations dated after it
+ * are ignored (docs/05 §5 rule 8, clock safety); every caller in the app passes it (net worth, the
+ * Investments page, the dashboard, Reports). Omit it only to count every record regardless of date (tests).
+ */
+export function holdingFigures(state: AppState, holding: Holding, today?: ISODate): HoldingFigures {
+  const counted = (d: ISODate): boolean => today === undefined || d <= today
+  const txs = state.holdingTransactions.filter((t) => t.holdingId === holding.id && counted(t.date))
   const flow = (t: { kind: 'buy' | 'sell'; amount: number }): number => (t.kind === 'buy' ? t.amount : -t.amount)
   const netInvested = txs.reduce((s, t) => s + flow(t), 0)
   const latest = state.holdingValuations
-    .filter((v) => v.holdingId === holding.id)
+    .filter((v) => v.holdingId === holding.id && counted(v.date))
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))[0]
 
   let value: number

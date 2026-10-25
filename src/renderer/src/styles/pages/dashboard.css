@@ -1,0 +1,92 @@
+/*
+ * Dashboard page styles (docs/09 §6). Layout glue for the widgets only; every colour, type role and
+ * motion token comes from tokens.css / app.css. Nothing here redefines an app.css class.
+ */
+
+/* Masthead (§6.1) */
+.masthead-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.masthead-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 32px; align-items: start; min-width: 0; }
+.masthead-grid .ledger { padding-top: 8px; }
+/* The anchor button is a .btn, not a ledger line (no mono inheritance); it takes a full ledger row and sits at the right edge at every width. */
+.masthead-grid .ledger-foot { grid-column: 1 / -1; justify-self: end; margin-top: 6px; font: 550 13px/1 var(--font-text); letter-spacing: 0; }
+.spark-empty { height: 56px; display: grid; place-items: center; border-top: 1px solid var(--border); }
+
+/* Net worth (§6.2) */
+.nw-legend { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: 13px; }
+.nw-legend .num { color: var(--text); }
+
+/* Day Strip ribbon (§6.3). Widgets are stacking contexts (contain: layout style), so the strip popover needs the ribbon above its later siblings. */
+.ribbon-widget { position: relative; z-index: 1; }
+/* Head and countdown on the first row, the strip on its own full-width row: 31 cells at 24px need ~860px, which the
+   three-column layout can never give under the 1240px page width (cells shrank to 7px slivers). */
+.ribbon { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'head right' 'strip strip'; gap: 12px 28px; align-items: center; min-width: 0; }
+.ribbon > .ribbon-head { grid-area: head; align-items: flex-start; } /* the chip keeps its own width in the 1fr column */
+.ribbon .stack > .chip { align-self: flex-start; }
+.ribbon > .strip-wrap { grid-area: strip; }
+.ribbon-day { font: 650 20px/1.25 var(--font-display); letter-spacing: -0.01em; font-variant-numeric: tabular-nums lining-nums; }
+.ribbon-right { grid-area: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right; min-width: 0; }
+
+/* Today ring (§6.4) */
+.today-ring .ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.today-ring .ring-centre { padding: 13%; }
+.today-ring .ring-centre .stat-label { font-size: 10px; letter-spacing: 0.1em; }
+.today-ring .ring-centre .stat-value { font-size: 22px; }
+.today-ring .ring-centre .stat-value .faint { font-size: 11px; }
+.safe-block { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border); padding-top: 10px; }
+.safe-value { font: 600 18px/1.2 var(--font-display); letter-spacing: -0.01em; font-variant-numeric: tabular-nums lining-nums; }
+
+/* Pot (§6.5) */
+.pot-threshold { margin: 0; }
+
+/* Cycle flow (§6.6) */
+.flow-legend { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 3px 10px; align-items: center; font-size: 12px; color: var(--text-2); }
+.flow-legend .num { color: var(--text); }
+.flow-sentence { margin: 0; animation: fade-in 300ms var(--ease-out) both; animation-delay: 1000ms; }
+
+/* Quick add command bar (§6.7): the flat widget resets padding, the bar needs its rules to breathe. */
+.widget.flat.command-bar { padding: 14px 0 12px; }
+
+/* Bills ledger (§6.8): the action column is 160px (Mark paid + Skip on one line), 104px once they stack at fold level 1. */
+.table.bills-table { --col-actions: 160px; --col-actions-1: 104px; }
+.bills-foot { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; font: 450 12px/1.4 var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums lining-nums; }
+.bills-foot .count { color: var(--text); }
+.meter-text { font: 450 12px/1.4 var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums lining-nums; }
+
+/* Unlogged days (§6.9) */
+.unlogged-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+/* An item is date / note / actions. At span 4 (≥ 1100px) the three stack, because the two buttons alone are wider than the
+   column; at span 12 (compact) the actions sit to the right of the date and note. */
+.unlogged-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px 12px; align-items: center; padding: 8px 0 8px 10px; border-bottom: 1px solid var(--border); box-shadow: inset 2px 0 var(--warn); }
+.unlogged-item:last-child { border-bottom: 0; }
+.unlogged-date { font: 500 13px/1.4 var(--mono); font-variant-numeric: tabular-nums lining-nums; }
+.unlogged-actions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+@media (max-width: 1099px) {
+  .unlogged-item { grid-template-columns: minmax(0, 1fr) auto; }
+  .unlogged-actions { grid-column: 2; grid-row: 1 / span 2; padding-top: 0; justify-content: flex-end; }
+}
+
+/* Goals (§6.11) and investments (§6.12) */
+.goal-list, .inv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.goal-row, .inv-row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.goal-name { font-weight: 550; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-bars { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; }
+.inv-bar { height: 6px; background: var(--surface-2); border-radius: var(--radius-sm); overflow: hidden; }
+.inv-bar > span { display: block; height: 100%; background: var(--c, var(--series-1)); transform-origin: left; animation: grow-x 600ms var(--ease-out) both; animation-delay: var(--t0, 800ms); }
+.inv-note { font: 450 12px/1.4 var(--mono); color: var(--text-3); white-space: nowrap; }
+.inv-widget .tile-hero .faint { font-size: 12px; }
+
+/* Where it went (§6.13): direct labels fade in once the bars have grown. */
+.dash-label { animation: fade-in 300ms var(--ease-out) both; animation-delay: 1500ms; }
+
+/* Nudge footer (§6.14): fades in last. */
+.widget.nudges .widget-body { animation: fade-in 240ms var(--ease-out) both; animation-delay: 1050ms; }
+
+/* Shared */
+.dash-link { align-self: flex-start; }
+
+/* Compact (900–1099px): stack the ribbon and the masthead columns. */
+@media (max-width: 1099px) {
+  .masthead-grid { grid-template-columns: 1fr; }
+  .ribbon { grid-template-columns: 1fr; grid-template-areas: 'head' 'strip' 'right'; }
+  .ribbon-right { align-items: flex-start; text-align: left; }
+}

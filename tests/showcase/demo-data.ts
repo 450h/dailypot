@@ -32,6 +32,8 @@ export function demoState(today = todayLocal()): AppState {
   start = addDays(nextPaydayAfter(start, PAYDAY), 0)
   const first = { id: id(), startDate: start, endDate: cycleEndFor(start, PAYDAY), dailyAllowance: ALLOWANCE }
   s.cycles = ensureCycles([first], PAYDAY, today, id).cycles
+  // Main balance anchor (docs/05 §10): the balance at the start of the first tracked day, so the masthead shows a live balance.
+  s.settings.balanceAnchor = { date: start, amount: 850_000 }
   const ts = (d: string): string => `${d}T12:00:00.000Z`
 
   // Daily spending on every closed day (a few overspends, a couple of zero days).

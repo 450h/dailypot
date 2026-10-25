@@ -51,6 +51,21 @@ describe('Service lock enforcement (SECURITY §1)', () => {
     expect(p.state.cycles).toHaveLength(0)
     expect(p.state.categories).toHaveLength(0)
   })
+
+  it('refuses extend-back while locked and applies it through the store once unlocked', async () => {
+    const { svc, pin, store } = await make()
+    await svc.completeSetup({ ...setup, pin: '123456' })
+    pin.lock()
+    const payload = { startDate: '2026-09-27', dailyAllowance: 5000, confirmDays: true }
+    await expect(svc.extendBack(payload)).rejects.toMatchObject({ code: 'LOCKED' })
+    expect(store.state.cycles).toHaveLength(1)
+    await svc.pinVerify('123456')
+    await svc.extendBack(payload)
+    expect(store.state.cycles.map((c) => c.startDate)).toEqual(['2026-09-27', '2026-10-13'])
+    expect(store.state.confirmedDays).toHaveLength(16)
+    const onDisk = JSON.parse(await fs.readFile(join(dir, 'data.json'), 'utf8'))
+    expect(onDisk.cycles).toHaveLength(2)
+  })
 })
 
 describe('concurrency (QA B10)', () => {

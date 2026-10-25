@@ -38,6 +38,7 @@ export function registerIpc(service: Service, devUrl: string | undefined): void 
   handle(CHANNELS.completeSetup, (p: unknown) => service.completeSetup(p))
   handle(CHANNELS.setAllowance, (a: unknown) => service.setAllowance(a))
   handle(CHANNELS.startNextEarly, (d: unknown) => service.startNextEarly(d))
+  handle(CHANNELS.extendBack, (p: unknown) => service.extendBack(p))
   handle(CHANNELS.pinStatus, () => service.pinStatus())
   handle(CHANNELS.pinVerify, (p: unknown) => service.pinVerify(p))
   handle(CHANNELS.pinSet, (cur: unknown, next: unknown) => service.pinSet(cur, next))

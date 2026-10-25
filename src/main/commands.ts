@@ -4,16 +4,21 @@
  */
 import { addDays, monthOf, type ISODate } from '@shared/dates'
 import {
+  computePot,
+  cycleEndFor,
   defaultStartMonth,
   dueDateOf,
   ensureCycles,
+  extendCyclesBack,
   findCycle,
+  pastBillsToSkip,
   sortCycles,
   startNextEarly as startEarlyEngine,
-  validateFirstCycleStart,
-  cycleEndFor
+  unloggedDays,
+  validateExtendBack,
+  validateFirstCycleStart
 } from '@shared/engine'
-import { zSettingsPatch, zSetupPayload } from '@shared/ipc'
+import { zExtendBackPayload, zSettingsPatch, zSetupPayload } from '@shared/ipc'
 import { MAX_AMOUNT } from '@shared/money'
 import {
   ENTITY_COLLECTIONS,
@@ -228,10 +233,22 @@ export function archiveMonthFor(state: AppState, obligationId: string, today: IS
 
 // ---------- settings, setup, cycles ----------
 
-export function updateSettings(state: AppState, patch: unknown): AppState {
+/**
+ * Patch settings. `balanceAnchor` (docs/05 §10): an object sets the anchor (its date must be ≤ today),
+ * `null` clears it, omitted leaves it unchanged.
+ */
+export function updateSettings(state: AppState, patch: unknown, ctx: Ctx): AppState {
   const parsed = zSettingsPatch.safeParse(patch)
   if (!parsed.success) fail('INVALID', zodMessage(parsed.error))
-  return { ...state, settings: { ...state.settings, ...parsed.data } }
+  const { balanceAnchor, ...rest } = parsed.data!
+  const settings = { ...state.settings, ...rest }
+  if (balanceAnchor === null) {
+    delete settings.balanceAnchor
+  } else if (balanceAnchor !== undefined) {
+    notFuture(balanceAnchor.date, ctx, 'Balance date')
+    settings.balanceAnchor = balanceAnchor
+  }
+  return { ...state, settings }
 }
 
 export function completeSetup(state: AppState, payload: unknown, ctx: Ctx): AppState {
@@ -282,6 +299,49 @@ export function startNextEarly(state: AppState, startDate: unknown, ctx: Ctx): A
   } catch (e) {
     return fail('INVALID', (e as Error).message)
   }
+}
+
+/**
+ * Extend tracking into the past (docs/05 §3): prepend cycles from `startDate` to the day before the
+ * current first cycle. Existing cycles are untouched. With `confirmDays`, every new past day that the
+ * engine lists as unlogged (docs/05 §5) is confirmed as "spent nothing". With `skipPastBills`, every
+ * unsettled bill month due in the new range before today is marked skipped (paid before tracking), so
+ * the pot does not reserve for it.
+ */
+export function extendBack(state: AppState, payload: unknown, ctx: Ctx): AppState {
+  requireSetup(state)
+  const parsed = zExtendBackPayload.safeParse(payload)
+  if (!parsed.success) fail('INVALID', zodMessage(parsed.error))
+  const p = parsed.data!
+  notFuture(p.startDate, ctx, 'Start date')
+  const err = validateExtendBack(state.cycles, p.startDate, ctx.today)
+  if (err) fail('INVALID', err)
+  const oldFirst = sortCycles(state.cycles)[0]!
+  const rangeEnd = addDays(oldFirst.startDate, -1)
+  const next: AppState = {
+    ...state,
+    cycles: extendCyclesBack(state.cycles, state.settings.payday, p.startDate, p.dailyAllowance, ctx.newId)
+  }
+  if (p.confirmDays) {
+    // The engine's own definition of an unlogged day, over the new range only; oldest first.
+    const empty = unloggedDays(computePot(next, ctx.today), p.startDate, rangeEnd).reverse()
+    next.confirmedDays = [...state.confirmedDays, ...empty.map((d) => ({ id: ctx.newId(), date: d.date }))]
+  }
+  if (p.skipPastBills) {
+    // The engine's single definition of "which months to skip" (shared with the dialog preview).
+    const skips = pastBillsToSkip(state.obligations, state.obligationPayments, p.startDate, rangeEnd, ctx.today)
+      .map((i) => ({
+        id: ctx.newId(),
+        obligationId: i.obligationId,
+        period: i.period,
+        status: 'skipped' as const,
+        date: ctx.today,
+        amount: 0,
+        createdAt: ctx.nowIso
+      }))
+    next.obligationPayments = [...state.obligationPayments, ...skips]
+  }
+  return next
 }
 
 /** Appends cycles up to today. Returns the same object when nothing changed. */

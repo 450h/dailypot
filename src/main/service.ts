@@ -99,7 +99,7 @@ export class Service {
   }
 
   updateSettings(patch: unknown): Promise<StatePayload> {
-    return this.apply((s) => cmd.updateSettings(s, patch))
+    return this.apply((s, c) => cmd.updateSettings(s, patch, c))
   }
 
   async completeSetup(payload: unknown): Promise<StatePayload> {
@@ -117,6 +117,10 @@ export class Service {
 
   startNextEarly(startDate: unknown): Promise<StatePayload> {
     return this.apply((s, c) => cmd.startNextEarly(s, startDate, c))
+  }
+
+  extendBack(payload: unknown): Promise<StatePayload> {
+    return this.apply((s, c) => cmd.extendBack(s, payload, c))
   }
 
   // ----- PIN -----

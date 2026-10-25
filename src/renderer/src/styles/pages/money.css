@@ -1,0 +1,130 @@
+/*
+ * Page CSS for Bills, Savings goals, Investments and the Pay/Skip dialogs (docs/09 §8, docs/10 §1).
+ * Token-based only; never redefines an app.css class. Keyframes (grow-x, fade-rise) come from app.css.
+ */
+
+/* ---- Head figure block under the page head: a 40px .hero-2 figure left, the page note right ---- */
+.money-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 24px;
+  align-items: end;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.money-figure { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.money-note { max-width: 56ch; justify-self: end; text-align: right; }
+@media (max-width: 1099px) {
+  .money-head { grid-template-columns: minmax(0, 1fr); }
+  .money-note { justify-self: start; text-align: left; }
+}
+
+/* ---- Bills (folding ledger, docs/09 §4.12): History · Edit · Archive · delete on one 240px line, two lines of two at fold level 1 ---- */
+.table.bills-list { --col-actions: 240px; --col-actions-1: 136px; }
+.bills-list .cat .dot { margin-right: 6px; vertical-align: middle; }
+.bills-list .months .mono { white-space: nowrap; }
+.bills-list .months .chip { margin-left: 6px; }
+.bills-list .fold-line .cat { color: var(--text-2); }
+
+/* The history dialog keeps the 520px modal: Pay/Skip (or Edit/Undo) on one line, stacked once the due date folds. */
+.table.bill-history-table { --col-actions: 124px; --col-actions-1: 72px; }
+.bill-history .split {
+  display: block;
+  font: 450 12px/1.4 var(--mono);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: normal; /* the amount cell is td.r (nowrap); the split may wrap to a second line instead */
+}
+.bill-history .split > span { white-space: nowrap; } /* "pot 42.00" and "main 38.00" each stay whole */
+
+/* ---- Pay / Skip dialogs ---- */
+.pay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pay-figure { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pay-split { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.pay-split-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font: 450 12px/1.5 var(--mono);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.pay-split-line b { color: var(--text); font-weight: 600; }
+.pay-split .legend { font-size: 12px; }
+
+/* ---- Savings goals: poster cards ---- */
+.poster-figure { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.poster-note {
+  font: 450 12px/1.5 var(--mono);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.poster-note .glyph { color: var(--pos); font-weight: 700; margin-right: 4px; }
+.poster .card-title .row { align-self: center; }
+.poster .btn.ghost.danger { border-color: transparent; }
+.goals-art { display: block; width: 132px; height: 100px; margin: 0 auto 4px; }
+.goals-art .jar { fill: var(--surface-2); stroke: var(--ink); stroke-width: 2; }
+.goals-art .fill { fill: var(--accent); }
+.goals-art .coin { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.goals-art .rule-line { stroke: var(--ink); stroke-width: 2; }
+
+/* ---- Investments ---- */
+.inv-tiles .tile .faint { font-variant-numeric: tabular-nums lining-nums; }
+.inv-tiles .stat-value .glyph { font-size: 0.6em; margin-right: 4px; vertical-align: 0.15em; }
+.pair { display: grid; gap: 2px; min-width: 120px; }
+.pair-bar { height: 6px; background: var(--surface-2); border-radius: var(--radius-sm); overflow: hidden; }
+.pair-bar > span {
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  animation: grow-x 600ms var(--ease-out) both;
+  animation-delay: var(--t0, 550ms);
+}
+.pair-bar.invested > span { background: var(--series-1); }
+.pair-bar.value > span { background: var(--series-3); }
+.basis { display: block; font-size: 12px; line-height: 1.4; color: var(--text-3); white-space: normal; }
+/* Holdings (folding ledger, docs/09 §4.12): the paired bars fold under the name at 880px, net invested at 620px. Six actions
+   sit in two lines of three (256px column), three lines of two at 880px (192px); at 620px they collapse into the ⋯ menu (48px). */
+.table.inv-table { --col-actions: 256px; --col-actions-1: 192px; --col-actions-2: 48px; }
+.inv-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; flex-wrap: wrap; max-width: 236px; }
+.inv-menu { display: none; }
+@container (max-width: 880px) {
+  .inv-table .inv-actions { max-width: 172px; } /* three lines of two at the compact width, so the holding keeps ≥ 170px */
+}
+@container (max-width: 620px) {
+  .inv-table .inv-actions { display: none; }
+  .inv-table .inv-menu { display: inline-block; }
+}
+.inv-table .fold-line .pair { margin-top: 4px; max-width: 220px; }
+
+/* Row menu (⋯): fixed so .table-wrap's overflow never clips it */
+.menu-pop {
+  position: fixed;
+  z-index: 30;
+  min-width: 184px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  animation: fade-rise 160ms var(--ease-out) both;
+}
+.menu-item {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-weight: 500;
+  cursor: pointer;
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--surface-2); }
+.menu-item.danger { color: var(--neg); }

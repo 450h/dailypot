@@ -26,7 +26,7 @@ AppState keys (these are also the IPC collection names): `settings`, `categories
 
 | Collection | Fields (required unless `?`) | Notes |
 |---|---|---|
-| `settings` | `currency` (from the §1 list, default `SAR`), `payday` (1–31), `theme` (`system`/`light`/`dark`), `autoLockMinutes` (0–240; 0 = off), `setupComplete` (bool), `lastExportAt?` (ISO, set by main) | Single record, changed only via `settings:update` / `setup:complete`. |
+| `settings` | `currency` (from the §1 list, default `SAR`), `payday` (1–31), `theme` (`system`/`light`/`dark`), `autoLockMinutes` (0–240; 0 = off), `setupComplete` (bool), `lastExportAt?` (ISO, set by main), `balanceAnchor?` (`{date, amount}`: the main balance at the **start** of `date`, signed minor units; §10) | Single record, changed only via `settings:update` / `setup:complete`. `settings:update` takes `balanceAnchor: null` to clear the anchor. |
 | `categories` | `id`, `name` (1–40 chars), `kind` (`expense`/`income`), `color` (`#rrggbb`), `archived` | Seeded defaults. A category that's in use can only be archived. |
 | `cycles` | `id`, `startDate`, `endDate`, `dailyAllowance` (minor ≥ 0) | Contiguous and non-overlapping. Changed only through `cycle:*` commands (§3). |
 | `transactions` | `id`, `date`, `amount` (minor > 0), `kind` (`daily`/`nonDaily`/`income`), `categoryId`, `note?` (≤ 200), `createdAt` | `daily`/`nonDaily` need an **expense** category and `income` needs an **income** category. Only `daily` affects the pot. |
@@ -60,6 +60,7 @@ There's a single local user, so there are no roles. The **access boundary is the
 
 ### Write-time validation (IPC only, never when loading a file; see §9)
 - Dates of transactions, payments, contributions, holding transactions, valuations and confirmed days must be **≤ today**.
+- `settings.balanceAnchor.date` must be ≤ today (§10), and so must `cycle:extendBack`'s `startDate` (§3); both are refused with the same `FUTURE_DATE` error as any other future date.
 - Payments: the obligation must exist; `period` must be within `startMonth..endMonth`; the instance's dueDate must be ≥ `firstCycle.startDate`; `date` must be ≥ `firstCycle.startDate`.
 - The category kind must match the transaction kind (see the table above).
 
@@ -81,7 +82,14 @@ There's a single local user, so there are no roles. The **access boundary is the
   - Allowed when `today ≥ P − 7`. `startDate` must be in `[max(current.startDate + 1, P − 7), today]` (default today).
   - Effect: `current.endDate = startDate − 1`. The new cycle runs from `startDate` to `nextPaydayAfter(P) − 1`, so it absorbs the replaced payday instead of creating a tiny cycle. Its allowance copies the current one.
   - Example: payday 27, current cycle 27 Sep–26 Oct, early start 24 Oct → cycles 27 Sep–23 Oct and **24 Oct–26 Nov**.
-- Days **before the first cycle** are outside the system. Expenses dated then still show in lists and reports but don't affect the pot.
+- Days **before the first cycle** are outside the system. Expenses dated then still show in lists and reports but don't affect the pot. To bring them in, extend tracking back (next rule).
+- **Extend tracking back (`cycle:extendBack {startDate, dailyAllowance, confirmDays, skipPastBills?}`)**, for adding past details before the first cycle:
+  - `startDate` must be **before** `firstCycle.startDate`, ≤ today, and at most **1096 days** (about 3 years) before today.
+  - New cycles are built **backwards** from the current first cycle: `end = first.startDate − 1; while end ≥ startDate: start = max(startDate, paydayOnOrBefore(end)); add [start, end]; end = start − 1`, where `paydayOnOrBefore(d)` is the latest payday occurrence on or before `d` (clamped to the month's length). Every new cycle gets the given `dailyAllowance`; closed cycles can't be edited afterwards, so choose it once.
+  - **Existing cycles are untouched** (ids, dates and allowance). Because the original first cycle may have started mid-month, a **short cycle** can appear right before it. Example: first cycle 13 Oct–26 Oct, payday 27, `startDate` 1 Sep → **1 Sep–26 Sep** and **27 Sep–12 Oct**, then the unchanged 13 Oct–26 Oct.
+  - With `confirmDays`, every new past day (`startDate ≤ d < min(first.startDate, today)`) that the engine lists as **unlogged** (§5: no daily transaction and not already confirmed) gets a `confirmedDays` entry, so the backfill doesn't flood the pot history with unlogged days. Main takes that list from `unloggedDays(computePot(...), startDate, first.startDate − 1)`; there is no second definition. Without it, those days are unlogged and each adds its full per-day to the pot until entries are added.
+  - With `skipPastBills` (optional, default false), every bill instance whose dueDate falls in `[startDate, first.startDate − 1]` and is before today, and that has no settlement row (of any date, since a month is settled at most once), gets a **skipped** settlement dated today. Main and the dialog preview both take the list from the engine's `pastBillsToSkip`; there is no second definition. A skip means "paid outside DailyPot" (§2). Without it those instances exist as **overdue**: the pot reserves for each of them (§5 rule 4) until it's settled, so safe-to-spend drops and later bill payments re-split as shortfalls. The UI previews how many months this affects and defaults to skipping; a skip can be edited into a real payment later.
+  - The effects follow from ADR-0004: the pot timeline now starts on `startDate`, the old first cycle's opening pot is the new cycles' closing pot, transactions already dated in that range start counting, and bill instances whose dueDate falls in the extended range now exist (skipped when `skipPastBills` was set; otherwise settle or skip them, or move the bill's `startMonth`).
 
 ## 4. Obligation instances
 - An obligation has **one instance per calendar month** `YYYY-MM` from `startMonth` to `endMonth` (or open-ended), with `dueDate = YYYY-MM-min(dueDay, daysInMonth)`. The key is `obligationId:YYYY-MM`.
@@ -131,7 +139,7 @@ Use the open instances in instance order, the signed current `balance` (rule 5),
 Display: if `safeDaily ≥ A`, show "all bills are funded, your full per-day is safe". If `0 ≤ safeDaily < A`, show "spend ≤ safeDaily per day to cover your bills from the pot". If `safeDaily < 0`, show "the pot can't cover the upcoming bills even if you spend nothing; about `max_k(C_k − balance − A × n_k)` will come from your main balance".
 Today's spending counts toward `safeDaily`, so the "remaining today" line uses `safeDaily − spentToday` alongside `A − spentToday`.
 
-**Unlogged days:** a closed day in a cycle with no daily transactions and no `confirmedDays` entry is *unlogged*. The dashboard nudges about yesterday ("No spending logged yesterday: add it, or confirm you spent nothing") and the pot history marks unlogged days.
+**Unlogged days:** a closed day in a cycle with no daily transactions and no `confirmedDays` entry is *unlogged*. The dashboard nudges about yesterday ("No spending logged yesterday: add it, or confirm you spent nothing") and the pot history marks unlogged days. Confirming isn't limited to the nudge: `unloggedDays(pot, from?, to?)` lists every closed unlogged day, newest first, so any of them can be confirmed or backfilled later.
 
 ## 6. Reports
 - **Attribution:** payments, `fromPot`/`fromMain` and shortfalls are counted by **payment date**. Instances (planned bills) are counted by **dueDate**.
@@ -152,6 +160,7 @@ Today's spending counts toward `safeDaily`, so the "remaining today" line uses `
   - Otherwise: latest valuation `V` on date `v`, plus buys − sells dated **after** `v`. If such flows exist, the value is labelled "estimated — update value".
 - **Gain** = value − net invested. **Gain %** is shown only when net invested > 0.
 - **Fully sold** (value 0 with no later buys) shows "closed" with realised gain = −net invested.
+- `holdingFigures(state, holding, today?)`: when `today` is given, transactions and valuations dated after it are ignored (§5 rule 8). Every figure in the app passes it (net worth §10, the Investments page, the dashboard portfolio card, Reports). Only a holding's **History** dialog lists every record, so after a clock rollback (§9) it may show future-dated rows the figures ignore.
 - **Portfolio** totals cover non-archived holdings.
 - **Goal saved** = Σ contributions. The progress bar is capped at 100%.
 - **Months left** to `targetDate` = `(ty − y) × 12 + (tm − m) + (td > d ? 1 : 0)`, with a minimum of 1. **Needed per month** = `ceil(max(0, target − saved) / monthsLeft)`. A past target date shows "target date passed".
@@ -184,6 +193,25 @@ stateDiagram-v2
 ```
 
 ## 9. Loading, schema versions and clock safety
-- `data.json` carries `schemaVersion` (starting at `1`). On load, main parses the file and runs forward-only migrations `vN → vN+1` in memory, then validates with the **load schema**. The load schema is the same as the write schema **minus the "≤ today" checks**, so a backwards clock can never flag a good file as corrupt. If a migration ran, main writes a `pre-migration-<ts>` backup and then saves.
+- `data.json` carries `schemaVersion` (currently `2`; `1` was the 0.1.0 format). On load, main parses the file and runs forward-only migrations `vN → vN+1` in memory, then validates with the **load schema**. The load schema is the same as the write schema **minus the "≤ today" checks**, so a backwards clock can never flag a good file as corrupt. If a migration ran, main writes a `pre-migration-<ts>` backup and then saves.
+- **Migration 1 → 2 (v0.2.0) is additive:** v2 only adds the optional `settings.balanceAnchor` (§10), so every valid v1 file is already a valid v2 file and the step is the identity. The file is re-stamped with `schemaVersion: 2` and the `pre-migration` backup is still written.
 - A file with a **newer** `schemaVersion` opens **read-only** (writes are refused, with a banner telling the user to update the app) and is never overwritten. **Downgrade note:** after an upgrade has migrated your data, an older version opens it read-only. To go back, restore the `pre-migration` backup.
 - **Parse or validation failure:** the file is renamed to `data.corrupt-<ts>.json`, then the snapshots are tried newest-first and the first valid one is loaded, with a banner. If **no** snapshot is valid, the app does **not** start the setup wizard silently. It shows a recovery screen with the paths and two choices: "Import a backup file…" or "Start fresh (your corrupt file stays at …)".
+
+## 10. Main balance & net worth
+The **main balance** is the cash in your main account, derived like the pot ([ADR-0007](decisions/0007-anchored-main-balance.md)). It's never stored: it's an optional **anchor** plus every cash flow since.
+
+- **Anchor** (`settings.balanceAnchor = { date, amount }`, optional): "at the **start** of `date`, before that day's flows, my main balance was `amount`" (signed minor units; negative means overdrawn). It's set via `settings:update` (`date` ≤ today) and cleared with `balanceAnchor: null`. When the user types "my balance right now is X", the UI stores `anchorForBalanceNow` = `{ date: today, amount: X − netFlows(today) }`, so the computed balance equals X immediately. `amount` is bounded like every stored amount (±10,000,000.00): `settings:update` refuses a larger one with `INVALID`. `anchorForBalanceNow` can only exceed it when today's net flows do, so the UI shows that error instead of clamping.
+- **Window** `[since, today]`, inclusive: `since` = the anchor date if set, otherwise the first cycle's start date, otherwise none. With no window the balance is 0 and nothing is anchored. Items dated after today are ignored (rule 8 clock safety). An anchor dated after today (the clock went backwards, §9) has no flows: the balance is its amount and the series is the single point today.
+- **Flows** inside the window (all integer minor units):
+  - `income` = Σ `income` transactions · `daily` = Σ `daily` · `nonDaily` = Σ `nonDaily`;
+  - `bills` = Σ `obligationPayments` with status `paid`, by **payment date** (skips are not cash);
+  - `goals` = Σ `goalContributions.amount`, signed: positive = cash moved out to a goal, negative = withdrawn back;
+  - `investments` = Σ (`buy` → +amount, `sell` → −amount), the net cash moved into holdings.
+- **`balance = (anchor.amount or 0) + income − daily − nonDaily − bills − goals − investments`.**
+- **Unanchored** (no anchor, but cycles exist): the figure is the *change* since the first cycle started, not a bank balance. The UI labels it so and offers to set the anchor.
+- **Series:** `balanceSeries(days)` gives the end-of-day balance for each date from `max(since, today − (days − 1))` to today. Its last point equals `balance`.
+- **Net worth** = `cash` (the balance above) + `savings` (Σ contributions of **non-archived** goals dated ≤ today) + `investments` (portfolio value of non-archived holdings from records dated ≤ today, §7). Goals and investments are treated as cash that **left the main balance** and sits elsewhere, so moving money to a goal leaves net worth unchanged.
+- **Archived = closed.** Archiving a goal or holding that still holds money stops that money counting: net worth drops by the saved amount or the portfolio value, while the contributions and buys stay as cash that left the main balance. The UI's archive confirmation says so; to keep the money counted, leave the goal active (or record a withdrawal first).
+- The pot is an earmark inside the main balance, so it's never subtracted (§6). A bill's `fromMain` share is informational: the whole payment leaves the main balance.
+- Cash movements the app doesn't model (transfers, refunds, fees) make the derived figure drift. The remedy is re-anchoring ("my balance now is X"), never editing history.

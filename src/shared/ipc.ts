@@ -1,7 +1,7 @@
 /** IPC contract between preload and main (docs/06 "API surface"). */
 import { z } from 'zod'
 import { CURRENCIES, MAX_AMOUNT } from './money'
-import { zDate, type AppState, type EntityCollection } from './schema'
+import { zBalanceAnchor, zDate, type AppState, type EntityCollection } from './schema'
 
 export interface StateMeta {
   readOnly: boolean
@@ -43,7 +43,9 @@ export const zSettingsPatch = z
     currency: z.enum(CURRENCIES),
     payday: z.number().int().min(1).max(31),
     theme: z.enum(['system', 'light', 'dark']),
-    autoLockMinutes: z.number().int().min(0).max(240)
+    autoLockMinutes: z.number().int().min(0).max(240),
+    /** null clears the anchor; omitted leaves it unchanged. Its date must be ≤ today (docs/05 §10). */
+    balanceAnchor: zBalanceAnchor.nullable()
   })
   .partial()
 
@@ -64,8 +66,19 @@ export const zSetupPayload = z.strictObject({
   pin: zPin.optional()
 })
 
+/** Extend tracking into the past (docs/05 §3 "Extend tracking back"). */
+export const zExtendBackPayload = z.strictObject({
+  startDate: zDate,
+  dailyAllowance: z.number().int().min(0).max(MAX_AMOUNT),
+  /** Confirm every new past day that the engine lists as unlogged as "spent nothing". */
+  confirmDays: z.boolean(),
+  /** Mark unsettled bill months due in the extended range (before today) as skipped: paid before tracking. Omitted = false. */
+  skipPastBills: z.boolean().optional()
+})
+
 export type SettingsPatch = z.infer<typeof zSettingsPatch>
 export type SetupPayload = z.infer<typeof zSetupPayload>
+export type ExtendBackPayload = z.infer<typeof zExtendBackPayload>
 
 /** The API exposed on window.dailypot by the preload script. */
 export interface DailyPotApi {
@@ -76,6 +89,7 @@ export interface DailyPotApi {
   completeSetup(payload: SetupPayload): Promise<IpcResult<StatePayload>>
   setAllowance(dailyAllowance: number): Promise<IpcResult<StatePayload>>
   startNextEarly(startDate: string): Promise<IpcResult<StatePayload>>
+  extendBack(payload: ExtendBackPayload): Promise<IpcResult<StatePayload>>
   pinStatus(): Promise<IpcResult<PinStatus>>
   pinVerify(pin: string): Promise<IpcResult<PinStatus>>
   pinSet(current: string | undefined, next: string): Promise<IpcResult<PinStatus>>

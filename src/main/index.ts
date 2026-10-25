@@ -145,7 +145,7 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     title: 'DailyPot',
-    backgroundColor: '#0f1115',
+    backgroundColor: '#0f0f11',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
