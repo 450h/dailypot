@@ -41,7 +41,7 @@ jobs:
           # a tag without a notes file falls back to GitHub's generated notes.
           $notes = "docs/releases/$tag.md"
           if (Test-Path $notes) {
-            $lines = @(Get-Content $notes)
+            $lines = @(Get-Content $notes -Encoding utf8)
             $cut = [Array]::IndexOf(@($lines | ForEach-Object { $_.Trim() }), '---')
             $body = ($lines | Select-Object -Skip ($cut + 1)) -join "`n"
             Set-Content -Path release-body.md -Value $body.Trim() -Encoding utf8
