@@ -90,3 +90,7 @@
   .ribbon { grid-template-columns: 1fr; grid-template-areas: 'head' 'strip' 'right'; }
   .ribbon-right { align-items: flex-start; text-align: left; }
 }
+
+/* Spending rhythm table (§6.10): the ▲ over-per-day glyph occupies a fixed slot before the amount (the column is the
+   `delta` preset), so the right edge of the Spent column never shifts between rows. */
+.rhythm-widget .over-mark { display: inline-block; width: 1.1em; font-size: 0.8em; color: var(--neg); text-align: left; }

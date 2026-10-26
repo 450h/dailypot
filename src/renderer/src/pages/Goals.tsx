@@ -301,10 +301,10 @@ function GoalHistory({ goal, onClose }: { goal: Goal; onClose: () => void }): Re
               <Cols cols={[104, 'auto', 'num', 48]} />
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Note</th>
-                  <th className="r">Amount</th>
-                  <th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Note</th>
+                  <th scope="col" className="r">Amount</th>
+                  <th scope="col">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>

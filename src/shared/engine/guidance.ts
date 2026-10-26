@@ -94,6 +94,27 @@ export function dashboardBills(pot: PotResult, current: Cycle, today: ISODate): 
   return rows
 }
 
+export interface BillTotals {
+  /** Effective amount of every open (unpaid, unskipped) row. */
+  dueTotal: number
+  /** Pot money earmarked for those rows (nearest due first, `earmarks`). */
+  fundedTotal: number
+  /** What the main balance would cover if nothing changed: `max(0, dueTotal − fundedTotal)`. */
+  fromMainEstimate: number
+}
+
+/** Footer of the bills ledger (docs/09 §6.8) over `dashboardBills` rows; paid and skipped rows are settled and excluded. */
+export function dashboardBillTotals(rows: ReadonlyArray<BillRow>): BillTotals {
+  let dueTotal = 0
+  let fundedTotal = 0
+  for (const r of rows) {
+    if (r.status === 'paid' || r.status === 'skipped') continue
+    dueTotal += r.amount
+    fundedTotal += r.funded
+  }
+  return { dueTotal, fundedTotal, fromMainEstimate: Math.max(0, dueTotal - fundedTotal) }
+}
+
 /** Closed days with no daily spending and no "spent nothing" confirmation, NEWEST first, optionally within [from, to]. */
 export function unloggedDays(pot: PotResult, from?: ISODate, to?: ISODate): DayRow[] {
   return pot.days

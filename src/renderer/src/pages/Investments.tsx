@@ -31,7 +31,7 @@ interface MenuItem {
 }
 
 /**
- * Compact row actions behind a `⋯` button (shown under 1100px via CSS). `role="menu"` with `menuitem`s,
+ * Compact row actions behind a `⋯` button, shown by the container query at fold level 2 (≤ 620px, `.inv-menu` in money.css). `role="menu"` with `menuitem`s,
  * arrow/Home/End navigation, Escape closes and refocuses the trigger, outside click and scroll close.
  * Positioned fixed from the trigger's rect so `.table-wrap` never clips it.
  */
@@ -194,14 +194,14 @@ export function Investments(): React.JSX.Element {
               <Cols cols={['auto', ['auto', 1], ['num', 2], 128, 'delta', 'actions']} />
               <thead>
                 <tr>
-                  <th>Holding</th>
-                  <th data-fold="1">Invested vs value</th>
-                  <th className="r" data-fold="2">
+                  <th scope="col">Holding</th>
+                  <th scope="col" data-fold="1">Invested vs value</th>
+                  <th scope="col" className="r" data-fold="2">
                     Net invested
                   </th>
-                  <th className="r">Current value</th>
-                  <th className="r">Gain / loss</th>
-                  <th>
+                  <th scope="col" className="r">Current value</th>
+                  <th scope="col" className="r">Gain / loss</th>
+                  <th scope="col">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -478,10 +478,10 @@ function HoldingHistory({ holding, onClose }: { holding: Holding; onClose: () =>
             <Cols cols={[104, 'auto', 'num', 48]} />
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Event</th>
-                <th className="r">Amount</th>
-                <th>
+                <th scope="col">Date</th>
+                <th scope="col">Event</th>
+                <th scope="col" className="r">Amount</th>
+                <th scope="col">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>

@@ -558,6 +558,8 @@ table.table { table-layout: fixed; width: 100%; border-collapse: collapse; font-
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Chart tables (ChartCard): series names such as "Bills from main" exceed the 112px numeral column, so their headers wrap to a second line instead of ellipsising. */
+.chart-table th { white-space: normal; vertical-align: bottom; }
 .table td { padding: 8px 10px; height: 36px; border-bottom: 1px solid var(--border); vertical-align: middle; overflow-wrap: anywhere; }
 .table tr:last-child td { border-bottom: 0; }
 .table tbody tr:hover td { background: var(--surface-2); }
@@ -569,7 +571,9 @@ table.table { table-layout: fixed; width: 100%; border-collapse: collapse; font-
 .table col.c-delta { width: var(--col-delta); }
 .table col.c-date { width: var(--col-date); }
 .table col.c-actions { width: var(--col-actions); }
-/* The container. Positioned so absolutely placed descendants (sr-only header text) stay inside it. Never a scroller. */
+/* The container. Positioned so absolutely placed descendants (sr-only header text) stay inside it. Never a horizontal
+   scroller: a capped-height variant sets `overflow: hidden auto` (vertical only), because `overflow-y: auto` on its own
+   would compute the x axis to `auto` as well. */
 .table-wrap { position: relative; container-type: inline-size; overflow: visible; min-width: 0; }
 .table tr[style*='--status'] td:first-child { box-shadow: inset 2px 0 var(--status); }
 /* Fold lines: the folded column's information inside the primary cell; 12px, --text-2, numerals in mono. */

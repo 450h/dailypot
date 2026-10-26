@@ -318,16 +318,16 @@ export function PotHistory({ focusDate = null }: { focusDate?: ISODate | null })
               <Cols cols={[160, ['num', 1], 'num', ['delta', 2], 'auto', 'num']} />
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th className="r" data-fold="1">
+                  <th scope="col">Date</th>
+                  <th scope="col" className="r" data-fold="1">
                     Per-day
                   </th>
-                  <th className="r">Daily spent</th>
-                  <th className="r" data-fold="2">
+                  <th scope="col" className="r">Daily spent</th>
+                  <th scope="col" className="r" data-fold="2">
                     Delta
                   </th>
-                  <th>Bill payments</th>
-                  <th className="r">Pot after</th>
+                  <th scope="col">Bill payments</th>
+                  <th scope="col" className="r">Pot after</th>
                 </tr>
               </thead>
               <tbody>

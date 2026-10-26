@@ -216,9 +216,9 @@ export function Reports(): React.JSX.Element {
               <Cols cols={prevSummary ? ['auto', 'num', 'delta'] : ['auto', 'num']} />
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th className="r">This cycle</th>
-                  {prevSummary ? <th className="r">vs previous</th> : null}
+                  <th scope="col">Item</th>
+                  <th scope="col" className="r">This cycle</th>
+                  {prevSummary ? <th scope="col" className="r">vs previous</th> : null}
                 </tr>
               </thead>
               <tbody>

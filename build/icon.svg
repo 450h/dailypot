@@ -1,8 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <rect x="8" y="8" width="240" height="240" rx="56" fill="#1f7a5a"/>
-  <circle cx="128" cy="72" r="30" fill="#f2c94c"/>
-  <rect x="116" y="58" width="24" height="7" rx="3.5" fill="#c9a227"/>
-  <rect x="50" y="116" width="156" height="20" rx="10" fill="#ffffff"/>
-  <path d="M62 136 H194 C194 186 166 212 128 212 C90 212 62 186 62 136 Z" fill="#ffffff"/>
-  <rect x="112" y="156" width="32" height="8" rx="4" fill="#1f7a5a" opacity="0.35"/>
+  <!-- DailyPot brand mark (docs/09 §5.1, .brand-mark): an ink square with the accent "pot" square inside. -->
+  <rect x="8" y="8" width="240" height="240" rx="22" fill="#141311"/>
+  <rect x="78" y="78" width="100" height="100" fill="#1e3ff0"/>
 </svg>

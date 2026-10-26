@@ -45,7 +45,7 @@ interface Derived {
 }
 ```
 
-Everything else is a direct engine call with these inputs, e.g. `safeToSpend(pot, current, today)`, `dashboardBills(pot, current, today)`, `balanceSeries(state, today, 30)`, `cycleSummary(state, pot, cycle, today)`, `spendingByCategory(state, from, to)`, `goalFigures(state, goal, today)`, `holdingFigures(state, holding, today)`, `portfolioTotals(rows)`, `anchorForBalanceNow(state, today, balanceNow)`, `planExtendBack(...)`, `validateExtendBack(cycles, newStart, today)`. Memoise a heavy call with `useMemo` keyed on `derived` fields (destructure first; see §9 "React Compiler").
+Everything else is a direct engine call with these inputs, e.g. `safeToSpend(pot, current, today)`, `dashboardBills(pot, current, today)`, `dashboardBillTotals(rows)` (the bills ledger footer), `balanceSeries(state, today, 30)`, `cycleSummary(state, pot, cycle, today)`, `spendingByCategory(state, from, to)`, `goalFigures(state, goal, today)`, `holdingFigures(state, holding, today)`, `portfolioTotals(rows)`, `anchorForBalanceNow(state, today, balanceNow)`, `planExtendBack(...)`, `validateExtendBack(cycles, newStart, today)`. Memoise a heavy call with `useMemo` keyed on `derived` fields (destructure first; see §9 "React Compiler").
 
 Writes: `await run(window.dailypot.upsert('confirmedDays', { id: newId(), date }), 'Day confirmed')`. `run` applies the returned payload, toasts errors (`INVALID / FUTURE_DATE / NOT_SET_UP / LOCKED`) and returns `undefined` on failure, so `if (!ok) return`.
 
@@ -155,9 +155,10 @@ Every `.table` sits in a `.table-wrap` (a size container) and declares its colum
   </table>
 </div>
 ```
-- Widths: `num` (112px, `−10,000,000.00`), `delta` (128px), `date` (96px, mono `2026-10-24`), `actions` (`--col-actions`, narrowing to `--col-actions-1` at 880px and `--col-actions-2` at 620px; set them per table on `.table.x`, e.g. `.table.bills-table { --col-actions: 160px; --col-actions-1: 104px; }`), a px number, a `%` string, or `auto` (shares what the fixed columns leave). Long dates and date + chip cells declare their own px.
+- Widths: `num` (112px, `−10,000,000.00`; chart tables add `.chart-table` so headers such as "Bills from main" wrap to two lines instead of ellipsising), `delta` (128px), `date` (96px, mono `2026-10-24`), `actions` (`--col-actions`, narrowing to `--col-actions-1` at 880px and `--col-actions-2` at 620px; set them per table on `.table.x`, e.g. `.table.bills-table { --col-actions: 160px; --col-actions-1: 104px; }`), a px number, a `%` string, or `auto` (shares what the fixed columns leave). Long dates and date + chip cells declare their own px.
 - Folding: `[width, 1]` hides the column at `@container (max-width: 880px)`, `[width, 2]` at `620px`; put `data-fold` on the `<th>` and every `<td>` of that column too, and render the same information in the row's primary cell with `<FoldLine level>`. Only one copy is ever displayed (the other is `display: none`), so nothing is duplicated for assistive tech. Render a shared node once (`const fromPot = …`) and place it in both spots.
-- Row actions go in `<span className="cell-actions">`: one line at full width, stacked when the `actions` column narrows. Text cells wrap; `.num`, `td.r`, `.delta` and `.chip` never wrap. Never set `overflow-x: auto` on a `.table-wrap`; `tests/e2e/layout.spec.ts` fails any page, card, widget or dialog whose `scrollWidth` exceeds its width at 900, 1200 and 1440.
+- Row actions go in `<span className="cell-actions">`: one line at full width, stacked when the `actions` column narrows (the Bills list overrides this to two lines of two at fold level 1). Text cells wrap; `.num`, `td.r`, `.delta` and `.chip` never wrap. Every `<th>` carries `scope="col"`.
+- A `.table-wrap` is never a horizontal scroller. Never set `overflow-x: auto` on one, and give a capped-height list `overflow: hidden auto` rather than `overflow-y: auto` alone (which would compute the x axis to `auto` as well). `tests/e2e/layout.spec.ts` fails any page, card, widget or dialog whose `scrollWidth` exceeds its width at 900×640, 1200×820 and 1440×900; it emulates the viewport over CDP, so the host screen size never clamps the check.
 
 ---
 

@@ -265,14 +265,14 @@ function CyclesSection({ index }: { index: number }): React.JSX.Element {
               <Cols cols={['auto', 104, 64, 'num', ['num', 2], ['num', 2]]} />
               <thead>
                 <tr>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th className="r">Days</th>
-                  <th className="r">Per-day</th>
-                  <th className="r" data-fold="2">
+                  <th scope="col">Start</th>
+                  <th scope="col">End</th>
+                  <th scope="col" className="r">Days</th>
+                  <th scope="col" className="r">Per-day</th>
+                  <th scope="col" className="r" data-fold="2">
                     Opening pot
                   </th>
-                  <th className="r" data-fold="2">
+                  <th scope="col" className="r" data-fold="2">
                     Closing pot
                   </th>
                 </tr>
@@ -603,10 +603,10 @@ function DataSettings({ index }: { index: number }): React.JSX.Element {
               <Cols cols={['auto', [168, 2], 72, 'actions']} />
               <thead>
                 <tr>
-                  <th>File</th>
-                  <th data-fold="2">Saved</th>
-                  <th className="r">Size</th>
-                  <th className="r">
+                  <th scope="col">File</th>
+                  <th scope="col" data-fold="2">Saved</th>
+                  <th scope="col" className="r">Size</th>
+                  <th scope="col" className="r">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>

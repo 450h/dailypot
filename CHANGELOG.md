@@ -2,7 +2,7 @@
 
 All notable changes to DailyPot are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Dates are ISO (`YYYY-MM-DD`). Section references (`05 §3`, `ADR-0007`, `F2`) point into [docs/](docs/).
 
-## [0.2.0] – 2026-10-25
+## [0.2.0] – 2026-10-26
 
 The "Broadsheet" release. Driven by three owner complaints about 0.1.0: unlogged days vanished once the nudge was dismissed, the total balance never showed, and cycles could not be extended into the past to add earlier details.
 
@@ -21,7 +21,7 @@ The "Broadsheet" release. Driven by three owner complaints about 0.1.0: unlogged
 - **Settings:** new **Balance** section (current figure, anchor, Set / Adjust / Clear) and **Budget cycles** section (cycle table plus **Extend tracking back**).
 - **Setup wizard:** optional **Main balance today** field with an **In credit / Overdrawn** toggle on step 1; it becomes the balance anchor right after setup completes.
 - **Dashboard** rebuilt as fifteen widgets ([06 F2](docs/06-features.md)): masthead with a 30-day balance sparkline and a mono ledger, net worth, Day Strip ribbon, today ring with safe-to-spend, side pot with a bill-threshold sparkline, cycle flow, quick add command bar with an 8-second receipt and **Undo**, bills ledger, unlogged days, spending rhythm, savings goals, investments, where it went, nudge footer.
-- **Tests:** unit tests **85 → 126** (13 files). New: `src/shared/engine/balance.test.ts`, `src/shared/engine/obligations.test.ts`, `src/renderer/src/components/stripDays.test.ts`, `src/renderer/src/hooks/useCountUp.test.ts`; extended: `cycles`, `pot`, `reports`, `guidance`, `commands`, `store`, `service`. The Playwright suite now covers unlogged-day confirmation (widget, strip cell, **Confirm all**), the dialog focus trap and `inert` background, visible focus on a strip cell and a chart, and an **extend-back → set-balance** case (`tests/e2e/smoke.spec.ts`), plus a layout overflow guard that visits every page at 900×640, 1200×820 and 1440×900 with chart tables and dialogs open (`tests/e2e/layout.spec.ts`).
+- **Tests:** unit tests **85 → 127** (13 files). New: `src/shared/engine/balance.test.ts`, `src/shared/engine/obligations.test.ts`, `src/renderer/src/components/stripDays.test.ts`, `src/renderer/src/hooks/useCountUp.test.ts`; extended: `cycles`, `pot`, `reports`, `guidance`, `commands`, `store`, `service`. The Playwright suite now covers unlogged-day confirmation (widget, strip cell, **Confirm all**), the dialog focus trap and `inert` background, visible focus on a strip cell and a chart, and an **extend-back → set-balance** case (`tests/e2e/smoke.spec.ts`), plus a layout overflow guard that visits every page at 900×640, 1200×820 and 1440×900 with chart tables and dialogs open (`tests/e2e/layout.spec.ts`; the viewport is emulated over CDP, so the two larger legs are never clamped to the host screen on a laptop or a CI runner). `dashboardBillTotals` has its own case in `guidance.test.ts`.
 - **Docs:** [09 Design system "Broadsheet"](docs/09-design-system.md), [10 Renderer components](docs/10-renderer-components.md), [ADR-0007](docs/decisions/0007-anchored-main-balance.md); new screenshots `settings.png` and `dashboard-unlogged.png`.
 
 ### Changed
@@ -32,6 +32,10 @@ The "Broadsheet" release. Driven by three owner complaints about 0.1.0: unlogged
 - `holdingFigures(state, holding, today?)` ignores holding transactions and valuations dated after `today` ([05 §7](docs/05-data-model.md), rule 8 clock safety). Every figure in the app passes `today` (net worth, Investments, dashboard, Reports); only a holding's History dialog still lists every record.
 - The main window's pre-paint `backgroundColor` is `#0f0f11` to match the ink theme.
 - Docs updated to the shipped behaviour: [05](docs/05-data-model.md) (§2 settings, §3 extend back, §7, §9 migration and downgrade note, new §10), [06](docs/06-features.md) (rewritten as shipped in 0.2.0), [08](docs/08-roadmap-and-risks.md) (v0.2.0 subsection, testing strategy), [04](docs/04-architecture.md) (data-format row), [GLOSSARY](docs/GLOSSARY.md) (main balance, balance anchor, net worth, extend tracking back), [OPEN-QUESTIONS](docs/OPEN-QUESTIONS.md) (D12–D15), [docs/README](docs/README.md) and [decisions/README](docs/decisions/README.md); README features table, tour and FAQ; every screenshot regenerated in light and dark.
+- **App icon** (`build/icon.svg`, with `icon.png` and `icon.ico` regenerated for the installer, taskbar and README) now matches the in-app Broadsheet mark: an ink square with the accent square inside. The 0.1.0 pot-and-coin icon is gone.
+- **Bills ledger footer** (`Due this cycle · funded · from main`) is computed by the engine (`dashboardBillTotals`: open rows only, `fromMainEstimate = max(0, due − funded)`) instead of being summed in the component.
+- **Tables, from the tables review:** chart-table headers such as "Bills from main" wrap to a second line instead of ellipsising; every `<th>` carries `scope="col"`; capped-height lists scroll vertically only (`overflow: hidden auto`); the Spending rhythm table keeps the ▲ over-per-day glyph in a fixed slot in front of the amount; the Bills list wraps its row actions into two lines of two at the first fold rather than stacking; the bill history split `pot X · main Y` keeps its separator with `pot X` when it wraps.
+- **CI and release workflows:** `actions/checkout` and `actions/setup-node` v4 → v7. The release workflow publishes `docs/releases/<tag>.md` (below its first `---`) as the release body and marks the release as latest.
 
 ### Fixed
 - **Cycle flow "returned" figures.** A goal withdrawal or holding sale during the cycle is cash that came back. The legend now prints the engine's signed figures (for example `Saved −500.00`) plus a `Returned` row, and the sentence reads "You kept X of Y this cycle (incl. Z returned from goals or holdings)" with Y = income + returned, so X never exceeds Y. Only the bar clamps its segments at 0.
@@ -48,6 +52,7 @@ The "Broadsheet" release. Driven by three owner complaints about 0.1.0: unlogged
 ### Docs
 - New: `docs/09-design-system.md`, `docs/10-renderer-components.md`, `docs/decisions/0007-anchored-main-balance.md`, this `CHANGELOG.md`, `docs/releases/v0.2.0.md`.
 - Updated: `docs/04-architecture.md`, `docs/05-data-model.md`, `docs/06-features.md`, `docs/08-roadmap-and-risks.md`, `docs/GLOSSARY.md`, `docs/OPEN-QUESTIONS.md`, `docs/README.md`, `docs/decisions/README.md`, `README.md`, all of `docs/screenshots/`.
+- 2026-10-26: `README.md` rewritten around the download and install steps, with the new icon; `docs/09` (§4.12, §6.8), `docs/10` (§4.11) and `docs/06` record the chart-table header wrap, the vertical-only scroller rule, `scope="col"` on headers and `dashboardBillTotals`.
 - Open decisions recorded without the owner (D12–D15): balance semantics, an animations setting, editing closed cycles, widget containment.
 
 ## [0.1.0] – 2026-10-13

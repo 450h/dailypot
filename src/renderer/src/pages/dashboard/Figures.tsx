@@ -142,17 +142,17 @@ export function PotWidget({ cycle, figureRef, go }: { cycle: Cycle; figureRef: R
         )}
       </span>
       {asTable ? (
-        <div className="table-wrap" style={{ maxHeight: 220, overflowY: 'auto' }}>
+        <div className="table-wrap" style={{ maxHeight: 220, overflow: 'hidden auto' }}>
           <table className="table">
             {/* Folding ledger (docs/09 §4.12): at span 4 the delta folds under the date, the pot stays. */}
             <Cols cols={['auto', ['delta', 2], 'num']} />
             <thead>
               <tr>
-                <th>Date</th>
-                <th className="r" data-fold="2">
+                <th scope="col">Date</th>
+                <th scope="col" className="r" data-fold="2">
                   Delta
                 </th>
-                <th className="r">Pot after</th>
+                <th scope="col" className="r">Pot after</th>
               </tr>
             </thead>
             <tbody>

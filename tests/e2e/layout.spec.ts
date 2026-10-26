@@ -4,8 +4,13 @@
  * after the choreography has settled, the document, `.main` and every `.table-wrap`, `.table`, `.card`, `.widget` and
  * `.modal` must fit their own width, with every chart's "Show table" view open and the Bills history dialog open. A second
  * state (two unlogged days + one unpaid bill, as in the showcase) checks the span-8 bills ledger and the Pay dialog.
+ *
+ * The host screen clamps real window sizes (a 768px-tall laptop or a CI runner cannot show 1440×900), so the layout
+ * viewport is emulated instead: the window is sized as far as the screen allows, then a CDP `Emulation.setDeviceMetricsOverride`
+ * fixes `innerWidth × innerHeight` (and so every media and container query) at the target. The achieved size is read back
+ * and written into every assertion label; it is never hard-asserted, so a runner that cannot emulate still reports what it checked.
  */
-import { expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import { expect, test, type CDPSession, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -24,20 +29,35 @@ const PAGES = ['Dashboard', 'Transactions', 'Bills', 'Pot history', 'Savings goa
 const SETTLE_MS = 1700
 const CHECKED = ['.table-wrap', '.table', '.card', '.widget', '.modal'] as const
 
-async function launchWith(state: AppState): Promise<{ app: ElectronApplication; page: Page }> {
+interface Session {
+  app: ElectronApplication
+  page: Page
+  /** Kept open for the whole test: Chromium drops an emulation override when the session that set it detaches. */
+  cdp: CDPSession
+}
+
+async function launchWith(state: AppState): Promise<Session> {
   const dir = mkdtempSync(join(tmpdir(), 'dailypot-layout-'))
   writeFileSync(join(dir, 'data.json'), JSON.stringify(state))
   const { app, page } = await launch(dir)
   await expect(page.getByRole('heading', { name: /^Today/ })).toBeVisible()
-  return { app, page }
+  const cdp = await page.context().newCDPSession(page)
+  return { app, page, cdp }
 }
 
-async function resize(app: ElectronApplication, size: readonly [number, number]): Promise<void> {
-  await app.evaluate(({ BrowserWindow }, [w, h]) => {
+/** Sizes the window (best effort), emulates the target viewport and returns the size the renderer actually reports. */
+async function setViewport({ app, page, cdp }: Session, [w, h]: readonly [number, number]): Promise<string> {
+  await app.evaluate(({ BrowserWindow }, size) => {
     const win = BrowserWindow.getAllWindows()[0]!
-    win.setContentSize(w, h)
+    win.setContentSize(size.w, size.h)
     win.center()
-  }, size)
+  }, { w, h })
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 0, mobile: false })
+  await page.waitForTimeout(400)
+  const got = await page.evaluate(() => `${window.innerWidth}×${window.innerHeight}`)
+  const want = `${w}×${h}`
+  if (got !== want) test.info().annotations.push({ type: 'viewport', description: `asked for ${want}, renderer reports ${got}` })
+  return got === want ? want : `${want} (renderer reports ${got})`
 }
 
 async function go(page: Page, nav: string): Promise<void> {
@@ -86,12 +106,11 @@ async function withDialog(page: Page, opener: string, check: () => Promise<void>
 
 test('no horizontal overflow on any page at 900, 1200 and 1440 wide (demo data)', async () => {
   test.setTimeout(90_000)
-  const { app, page } = await launchWith(demoState())
+  const session = await launchWith(demoState())
+  const { app, page } = session
   try {
     for (const size of SIZES) {
-      const at = `${size[0]}×${size[1]}`
-      await resize(app, size)
-      await page.waitForTimeout(400)
+      const at = await setViewport(session, size)
       for (const name of PAGES) {
         await go(page, name)
         await assertFits(page, `${name} @ ${at}`)
@@ -124,12 +143,12 @@ test('dashboard with unlogged days and an unpaid bill fits at every size, pay di
   const latest = s.obligationPayments.filter((p) => p.obligationId === internet.id).sort((a, b) => (a.date < b.date ? 1 : -1))[0]
   s.obligationPayments = s.obligationPayments.filter((p) => p !== latest)
 
-  const { app, page } = await launchWith(s)
+  const session = await launchWith(s)
+  const { app, page } = session
   try {
     await expect(page.getByRole('heading', { name: 'Unlogged days' })).toBeVisible()
     for (const size of SIZES) {
-      const at = `${size[0]}×${size[1]}`
-      await resize(app, size)
+      const at = await setViewport(session, size)
       await go(page, 'Dashboard') // remounts the page, so the choreography replays at this size
       await assertFits(page, `Dashboard (unlogged) @ ${at}`)
       await withDialog(page, 'Mark paid', async () => assertFits(page, `Pay dialog @ ${at}`))

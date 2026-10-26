@@ -77,15 +77,15 @@ export function Rhythm({ cycle }: { cycle: Cycle }): React.JSX.Element {
       actions={<TableToggle asTable={asTable} onToggle={() => setAsTable(!asTable)} />}
     >
       {asTable ? (
-        <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+        <div className="table-wrap" style={{ maxHeight: 260, overflow: 'hidden auto' }}>
           <table className="table">
-            <Cols cols={[56, 'auto', 'num', 'num']} />
+            <Cols cols={[56, 'auto', 'delta', 'num']} />
             <thead>
               <tr>
-                <th>Day</th>
-                <th>Date</th>
-                <th className="r">Spent</th>
-                <th className="r">Per-day</th>
+                <th scope="col">Day</th>
+                <th scope="col">Date</th>
+                <th scope="col" className="r">Spent</th>
+                <th scope="col" className="r">Per-day</th>
               </tr>
             </thead>
             <tbody>
@@ -96,8 +96,9 @@ export function Rhythm({ cycle }: { cycle: Cycle }): React.JSX.Element {
                     {weekdayShort(r.date)} {formatDate(r.date)}
                   </td>
                   <td className="r">
+                    {/* The over-per-day glyph sits in a fixed slot in front of the amount, so the column's right edge stays aligned. */}
+                    <span className="over-mark" aria-hidden="true">{r.over > 0 ? '▲' : ''}</span>
                     <Money value={r.spent} className={r.over > 0 ? 'neg' : ''} />
-                    {r.over > 0 ? <span aria-hidden="true"> ▲</span> : null}
                   </td>
                   <td className="r">
                     <Money value={r.allowance} />
@@ -219,20 +220,20 @@ export function WhereItWent({ cycle, go }: { cycle: Cycle; go: Go }): React.JSX.
       {rows.length === 0 ? (
         <p className="muted">Nothing spent this cycle yet.</p>
       ) : asTable ? (
-        <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+        <div className="table-wrap" style={{ maxHeight: 260, overflow: 'hidden auto' }}>
           <table className="table">
             {/* Folding ledger (docs/09 §4.12): at span 6 the daily / non-daily split folds under the category, the total stays. */}
             <Cols cols={['auto', ['num', 2], ['num', 2], 'num']} />
             <thead>
               <tr>
-                <th>Category</th>
-                <th className="r" data-fold="2">
+                <th scope="col">Category</th>
+                <th scope="col" className="r" data-fold="2">
                   Daily
                 </th>
-                <th className="r" data-fold="2">
+                <th scope="col" className="r" data-fold="2">
                   Non-daily
                 </th>
-                <th className="r">Total</th>
+                <th scope="col" className="r">Total</th>
               </tr>
             </thead>
             <tbody>

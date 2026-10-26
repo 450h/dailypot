@@ -21,7 +21,7 @@
 .settings .settings-help { font: 450 12px/1.45 var(--font-text); color: var(--text-3); }
 .settings .settings-control { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .settings .settings-control .input.narrow { max-width: 240px; }
-.settings .settings-control .table-wrap.scroll { max-height: 320px; overflow-y: auto; }
+.settings .settings-control .table-wrap.scroll { max-height: 320px; overflow: hidden auto; }
 .settings .table.backups-table { --col-actions: 96px; --col-actions-1: 96px; }
 .settings .settings-control p { max-width: 68ch; }
 @media (max-width: 1039px) {

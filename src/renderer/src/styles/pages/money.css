@@ -19,8 +19,12 @@
   .money-note { justify-self: start; text-align: left; }
 }
 
-/* ---- Bills (folding ledger, docs/09 §4.12): History · Edit · Archive · delete on one 240px line, two lines of two at fold level 1 ---- */
-.table.bills-list { --col-actions: 240px; --col-actions-1: 136px; }
+/* ---- Bills (folding ledger, docs/09 §4.12): History · Edit · Archive · delete on one 240px line; at fold level 1 (880px) the
+   actions wrap into two lines of two (History Edit / Archive delete) rather than stacking four high ---- */
+.table.bills-list { --col-actions: 240px; --col-actions-1: 144px; }
+@container (max-width: 880px) {
+  .table.bills-list .cell-actions { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+}
 .bills-list .cat .dot { margin-right: 6px; vertical-align: middle; }
 .bills-list .months .mono { white-space: nowrap; }
 .bills-list .months .chip { margin-left: 6px; }

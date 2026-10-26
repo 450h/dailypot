@@ -163,13 +163,13 @@ export function ChartCard({
       {empty ? (
         <p className="muted">{empty}</p>
       ) : asTable ? (
-        <div className="table-wrap" style={{ maxHeight: 320, overflowY: 'auto' }}>
-          <table className="table">
+        <div className="table-wrap" style={{ maxHeight: 320, overflow: 'hidden auto' }}>
+          <table className="table chart-table">
             <Cols cols={cols} />
             <thead>
               <tr>
                 {table.columns.map((c, i) => (
-                  <th key={c} className={i > 0 ? 'r' : ''} data-fold={folds(i) ? 2 : undefined}>
+                  <th scope="col" key={c} className={i > 0 ? 'r' : ''} data-fold={folds(i) ? 2 : undefined}>
                     {c}
                   </th>
                 ))}

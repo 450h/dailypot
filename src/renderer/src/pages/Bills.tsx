@@ -119,13 +119,13 @@ export function Bills(): React.JSX.Element {
       <Cols cols={['auto', 'num', 72, ['auto', 1], ['auto', 2], 120, 'actions']} />
       <thead>
         <tr>
-          <th>Name</th>
-          <th className="r">Amount</th>
-          <th>Due</th>
-          <th data-fold="1">Months</th>
-          <th data-fold="2">Category</th>
-          <th>{formatMonth(thisMonth)}</th>
-          <th>
+          <th scope="col">Name</th>
+          <th scope="col" className="r">Amount</th>
+          <th scope="col">Due</th>
+          <th scope="col" data-fold="1">Months</th>
+          <th scope="col" data-fold="2">Category</th>
+          <th scope="col">{formatMonth(thisMonth)}</th>
+          <th scope="col">
             <span className="sr-only">Actions</span>
           </th>
         </tr>
@@ -316,11 +316,11 @@ function BillHistory({ obligation, onClose }: { obligation: Obligation; onClose:
             <Cols cols={['auto', ['date', 1], 120, 136, 'actions']} />
             <thead>
               <tr>
-                <th>Month</th>
-                <th data-fold="1">Due</th>
-                <th>Status</th>
-                <th className="r">Amount</th>
-                <th>
+                <th scope="col">Month</th>
+                <th scope="col" data-fold="1">Due</th>
+                <th scope="col">Status</th>
+                <th scope="col" className="r">Amount</th>
+                <th scope="col">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -353,9 +353,10 @@ function BillHistory({ obligation, onClose }: { obligation: Obligation; onClose:
                           {split ? (
                             <span className="split">
                               <span>
+                                {/* the separator travels with "pot X" (no-break space), so it never dangles when "main Y" wraps */}
                                 pot <Money value={split.fromPot} />
+                                &nbsp;·
                               </span>{' '}
-                              ·{' '}
                               <span>
                                 main <Money value={split.fromMain} />
                               </span>

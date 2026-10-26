@@ -1,7 +1,7 @@
 /** Bills ledger (docs/09 §6.8) and the unlogged-days list (§6.9, complaint 1). */
 import { useMemo, useRef, useState } from 'react'
 import { formatDate, weekdayShort, type ISODate } from '@shared/dates'
-import { dashboardBills, type BillRow } from '@shared/engine'
+import { dashboardBillTotals, dashboardBills, type BillRow } from '@shared/engine'
 import type { Cycle } from '@shared/schema'
 import type { Go } from '../../App'
 import { Chip, Cols, Count, FoldLine, Money, ProgressBar, UserText, Widget, type CSSVars } from '../../components/ui'
@@ -34,8 +34,7 @@ export function BillsLedger({
   const { pot, today } = derived
   const bills = useMemo(() => dashboardBills(pot, cycle, today), [pot, cycle, today])
   const open = bills.filter((b) => b.status !== 'paid' && b.status !== 'skipped')
-  const due = open.reduce((sum, b) => sum + b.amount, 0)
-  const funded = open.reduce((sum, b) => sum + b.funded, 0)
+  const totals = useMemo(() => dashboardBillTotals(bills), [bills]) // footer figures come from the engine, never summed here
 
   return (
     <Widget
@@ -58,12 +57,12 @@ export function BillsLedger({
             <Cols cols={['auto', ['date', 2], 'num', 120, ['auto', 1], 'actions']} />
             <thead>
               <tr>
-                <th>Bill</th>
-                <th data-fold="2">Due</th>
-                <th className="r">Amount</th>
-                <th>Status</th>
-                <th data-fold="1">From the pot</th>
-                <th>
+                <th scope="col">Bill</th>
+                <th scope="col" data-fold="2">Due</th>
+                <th scope="col" className="r">Amount</th>
+                <th scope="col">Status</th>
+                <th scope="col" data-fold="1">From the pot</th>
+                <th scope="col">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -146,13 +145,13 @@ export function BillsLedger({
       {open.length > 0 ? (
         <p className="bills-foot">
           <span>
-            Due this cycle <Count value={due} id="bills-due" delay={900} duration={700} />
+            Due this cycle <Count value={totals.dueTotal} id="bills-due" delay={900} duration={700} />
           </span>
           <span>
-            funded <Count value={funded} id="bills-funded" delay={900} duration={700} />
+            funded <Count value={totals.fundedTotal} id="bills-funded" delay={900} duration={700} />
           </span>
           <span>
-            from main ~<Count value={Math.max(0, due - funded)} id="bills-main" delay={900} duration={700} />
+            from main ~<Count value={totals.fromMainEstimate} id="bills-main" delay={900} duration={700} />
           </span>
         </p>
       ) : null}

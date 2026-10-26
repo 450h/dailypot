@@ -13,8 +13,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -35,5 +35,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $tag = "${{ github.ref_name }}"
           $files = @(Get-ChildItem dist -File -Filter *.exe | ForEach-Object { $_.FullName }) + 'dist/SHA256SUMS.txt'
-          gh release create "${{ github.ref_name }}" @files --title "DailyPot ${{ github.ref_name }}" --generate-notes
+          # Release body: docs/releases/<tag>.md after its first "---" line (the part above it is maintainer notes);
+          # a tag without a notes file falls back to GitHub's generated notes.
+          $notes = "docs/releases/$tag.md"
+          if (Test-Path $notes) {
+            $lines = @(Get-Content $notes)
+            $cut = [Array]::IndexOf(@($lines | ForEach-Object { $_.Trim() }), '---')
+            $body = ($lines | Select-Object -Skip ($cut + 1)) -join "`n"
+            Set-Content -Path release-body.md -Value $body.Trim() -Encoding utf8
+            gh release create $tag @files --title "DailyPot $tag" --notes-file release-body.md --latest
+          } else {
+            gh release create $tag @files --title "DailyPot $tag" --generate-notes --latest
+          }

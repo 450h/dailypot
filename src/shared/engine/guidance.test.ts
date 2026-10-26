@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dashboardBills, earmarks, safeToSpend, unloggedDays } from './guidance'
+import { dashboardBillTotals, dashboardBills, earmarks, safeToSpend, unloggedDays } from './guidance'
 import { computePot } from './pot'
 import { baseState, bill, id, pay, sar, skip, spend } from './testkit'
 
@@ -87,6 +87,20 @@ describe('earmarks and dashboard bills', () => {
       'Gym:2026-12:paid'
     ])
     expect(phone).toBeDefined()
+  })
+
+  it('totals the open rows for the ledger footer; paid and skipped rows are settled and excluded', () => {
+    const s = baseState([{ startDate: '2026-10-01', endDate: '2026-10-30', allowance: 60 }])
+    const phone = bill(s, 'Phone', 80, 10, '2026-10')
+    const gym = bill(s, 'Gym', 150, 15, '2026-10')
+    const today = '2026-10-03' // pot 120: 80 earmarked for the phone, 40 for the gym
+    const rows = () => dashboardBills(computePot(s, today), s.cycles[0]!, today)
+    expect(dashboardBillTotals(rows())).toEqual({ dueTotal: sar(230), fundedTotal: sar(120), fromMainEstimate: sar(110) })
+    pay(s, phone, '2026-10', today) // paid from the pot: 40 left for the gym
+    expect(dashboardBillTotals(rows())).toEqual({ dueTotal: sar(150), fundedTotal: sar(40), fromMainEstimate: sar(110) })
+    skip(s, gym, '2026-10', today)
+    expect(dashboardBillTotals(rows())).toEqual({ dueTotal: 0, fundedTotal: 0, fromMainEstimate: 0 })
+    expect(dashboardBillTotals([])).toEqual({ dueTotal: 0, fundedTotal: 0, fromMainEstimate: 0 })
   })
 })
 
